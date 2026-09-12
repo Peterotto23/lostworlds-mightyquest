@@ -4,6 +4,10 @@ Private server for **The Mighty Quest for Epic Loot**, whose PC servers shut dow
 
 Part of the Lost Worlds project.
 
+Class selection now works. This fork adds XP persistence, but hero levels are not yet persistent.
+
+The first dungeon raid is playable, and the second raid currently works with the Wizard class. Other classes can become soft-locked after the first raid and may require restarting the game.
+
 ## What you need
 
 - Windows 10/11.
@@ -24,7 +28,8 @@ Prebuilt binaries are in `bin/`; no build tools are required.
    ```
 3. Launch the game:
    ```powershell
-   .\scripts\play.ps1
+   Must be in the project folder to launch the game
+   powershell -ExecutionPolicy Bypass -File .\scripts\play.ps1
    ```
 
 Revert the hosts change with `.\scripts\host-revert.ps1`.
