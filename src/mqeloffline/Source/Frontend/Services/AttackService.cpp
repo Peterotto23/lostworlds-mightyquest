@@ -23,11 +23,14 @@ MQEL_json GetCastle(uint64_t AccountID, eCastletype Type)
     MQEL_json Result;
 
     // Get the castle-type.
-    if (Type == eCastletype::Ubisoft) Result["$type"] = "HyperQuest.GameServer.Contracts.UbisoftCastle, HyperQuest.GameServer.Contracts";
-    if (Type == eCastletype::User) Result["$type"] = "HyperQuest.GameServer.Contracts.UserCastle, HyperQuest.GameServer.Contracts";
+    if (Type == eCastletype::Ubisoft)
+        Result["$type"] = "HyperQuest.GameServer.Contracts.UbisoftCastle, HyperQuest.GameServer.Contracts";
+    if (Type == eCastletype::User)
+        Result["$type"] = "HyperQuest.GameServer.Contracts.UserCastle, HyperQuest.GameServer.Contracts";
 
     // Check tutorial status.
-    if (AccountID <= 3) Result["IsTutorialCastle"] = true;
+    if (AccountID <= 3)
+        Result["IsTutorialCastle"] = true;
 
     // The FIFO-maps does not support patching, so we need to create a new object.
     {
@@ -51,6 +54,16 @@ MQEL_json GetCastle(uint64_t AccountID, eCastletype Type)
         return MQEL_json::parse(Hackery.c_str());
     }
 }
+
+MQEL_json GetTutorialcastle(eAttacktype Type)
+{
+    (void)Type;
+    // First (wilderness) tutorial castle. This is the hardcoded castle
+    // used by the original MQELOffline build because the local castle
+    // package is intentionally empty.
+    return MQEL_json::parse(R"JSON({"$type":"HyperQuest.GameServer.Contracts.UbisoftCastle, HyperQuest.GameServer.Contracts","IsTutorialCastle":true,"ForceCastleLevelOnBuildables":true,"AccountId":2,"OasisNameId":2325,"LayoutId":1,"Rooms":[{"Triggers":[{"SizeX":18,"SizeY":6,"RoomZoneId":1,"Y":18,"Orientation":1,"Id":1,"SpecContainerId":52}],"X":4,"Y":8,"Orientation":3,"Id":11,"SpecContainerId":7105},{"Creatures":[{"AggroPropagationOffsetX":2.539598,"AggroPropagationOffsetZ":-0.9580116,"RoomZoneId":1,"X":9,"Y":11,"Orientation":3,"Id":45,"SpecContainerId":1081},{"AggroPropagationOffsetX":-0.1254749,"AggroPropagationOffsetZ":-0.4284554,"RoomZoneId":1,"X":14,"Y":21,"Orientation":2,"Id":46,"SpecContainerId":1081},{"AggroPropagationOffsetX":-0.588815,"AggroPropagationOffsetZ":0.1549107,"RoomZoneId":1,"X":9,"Y":28,"Orientation":1,"Id":47,"SpecContainerId":1081},{"AggroPropagationOffsetX":1.657236,"AggroPropagationOffsetZ":-1.133854,"RoomZoneId":1,"X":22,"Y":7,"Orientation":2,"Id":48,"SpecContainerId":1081},{"AggroPropagationOffsetX":-1.982243,"AggroPropagationOffsetZ":0.1102066,"RoomZoneId":1,"X":23,"Y":29,"Orientation":2,"Id":49,"SpecContainerId":1081},{"RoomZoneId":1,"X":26,"Y":18,"Orientation":2,"Id":50,"SpecContainerId":1081}],"Triggers":[{"SizeX":18,"SizeY":6,"RoomZoneId":1,"X":18,"Y":2,"Id":8,"SpecContainerId":52}],"Decorations":[{"RoomZoneId":1,"X":13,"Y":8,"Orientation":3,"Id":115,"SpecContainerId":224},{"RoomZoneId":1,"X":20,"Y":20,"Orientation":2,"Id":116,"SpecContainerId":224},{"RoomZoneId":1,"X":18,"Y":18,"Orientation":2,"Id":118,"SpecContainerId":224},{"RoomZoneId":1,"X":18,"Y":22,"Orientation":2,"Id":119,"SpecContainerId":224},{"RoomZoneId":1,"X":16,"Y":29,"Orientation":3,"Id":120,"SpecContainerId":224},{"RoomZoneId":1,"X":7,"Y":19,"Orientation":3,"Id":131,"SpecContainerId":223},{"RoomZoneId":1,"X":23,"Y":11,"Orientation":2,"Id":126,"SpecContainerId":224},{"RoomZoneId":1,"X":25,"Y":25,"Orientation":3,"Id":139,"SpecContainerId":223},{"RoomZoneId":1,"X":15,"Y":27,"Orientation":3,"Id":166,"SpecContainerId":236},{"RoomZoneId":1,"X":30,"Y":11,"Orientation":2,"Id":167,"SpecContainerId":236},{"RoomZoneId":1,"X":33,"Y":22,"Orientation":2,"Id":169,"SpecContainerId":236},{"RoomZoneId":1,"X":6,"Y":17,"Orientation":3,"Id":170,"SpecContainerId":235},{"RoomZoneId":1,"X":29,"Y":5,"Id":171,"SpecContainerId":235},{"RoomZoneId":1,"X":22,"Y":33,"Orientation":3,"Id":172,"SpecContainerId":236}],"X":4,"Y":7,"Id":26,"SpecContainerId":5025},{"Traps":[{"RoomZoneId":4,"X":17,"Y":33,"Id":1,"SpecContainerId":79},{"RoomZoneId":4,"X":18,"Y":33,"Id":2,"SpecContainerId":79}],"Triggers":[{"SizeX":14,"SizeY":7,"RoomZoneId":1,"X":30,"Y":18,"Orientation":1,"Id":2,"SpecContainerId":52},{"SizeX":2,"SizeY":2,"RoomZoneId":1,"X":24,"Y":18,"Orientation":1,"Id":3,"SpecContainerId":52},{"SizeX":2,"SizeY":2,"RoomZoneId":1,"X":6,"Y":25,"Orientation":1,"Id":4,"SpecContainerId":52},{"SizeX":12,"SizeY":2,"RoomZoneId":1,"X":14,"Y":18,"Orientation":1,"Id":5,"SpecContainerId":52}],"Decorations":[{"RoomZoneId":4,"X":13,"Y":34,"Id":174,"SpecContainerId":236},{"RoomZoneId":4,"X":21,"Y":34,"Id":175,"SpecContainerId":235}],"Buildings":[{"Rank":1,"RoomZoneId":1,"Id":3,"SpecContainerId":1}],"X":4,"Y":3,"Orientation":3,"Id":23,"SpecContainerId":7104},{"Creatures":[{"RoomZoneId":1,"X":21,"Y":18,"Orientation":2,"Id":68,"SpecContainerId":1081},{"RoomZoneId":1,"X":18,"Y":34,"Orientation":3,"Id":58,"SpecContainerId":1029},{"RoomZoneId":1,"X":16,"Y":17,"Id":65,"SpecContainerId":1081}],"Decorations":[{"RoomZoneId":1,"X":20,"Y":13,"Id":110,"SpecContainerId":223},{"RoomZoneId":1,"X":19,"Y":3,"Orientation":3,"Id":111,"SpecContainerId":223},{"RoomZoneId":1,"X":16,"Y":4,"Id":112,"SpecContainerId":223},{"RoomZoneId":1,"X":14,"Y":34,"Orientation":2,"Id":114,"SpecContainerId":224},{"RoomZoneId":1,"X":21,"Y":29,"Id":140,"SpecContainerId":224},{"RoomZoneId":1,"X":13,"Y":22,"Id":141,"SpecContainerId":224},{"RoomZoneId":1,"X":22,"Y":1,"Orientation":3,"Id":143,"SpecContainerId":224},{"RoomZoneId":1,"X":13,"Y":7,"Orientation":1,"Id":142,"SpecContainerId":224},{"RoomZoneId":1,"X":16,"Y":1,"Id":113,"SpecContainerId":223}],"X":4,"Y":6,"Orientation":3,"Id":29,"SpecContainerId":2006},{"Creatures":[{"RoomZoneId":1,"X":24,"Y":19,"Orientation":2,"Id":56,"SpecContainerId":1003},{"AggroPropagationOffsetX":-0.6984169,"AggroPropagationOffsetZ":-0.2310722,"RoomZoneId":1,"X":21,"Y":25,"Orientation":1,"Id":44,"SpecContainerId":1081},{"RoomZoneId":1,"X":20,"Y":13,"Orientation":1,"Id":69,"SpecContainerId":1081},{"RoomZoneId":1,"X":21,"Y":1,"Orientation":1,"Id":81,"SpecContainerId":1001}],"Decorations":[{"RoomZoneId":1,"X":13,"Y":14,"Id":153,"SpecContainerId":155},{"RoomZoneId":1,"X":14,"Y":25,"Orientation":2,"Id":154,"SpecContainerId":155},{"RoomZoneId":1,"X":22,"Y":25,"Orientation":2,"Id":155,"SpecContainerId":155},{"RoomZoneId":1,"X":22,"Y":14,"Orientation":2,"Id":156,"SpecContainerId":155},{"RoomZoneId":1,"X":18,"Y":24,"Orientation":2,"Id":157,"SpecContainerId":154},{"RoomZoneId":1,"X":10,"Y":20,"Orientation":2,"Id":158,"SpecContainerId":154},{"RoomZoneId":1,"X":17,"Y":11,"Orientation":2,"Id":159,"SpecContainerId":154},{"RoomZoneId":1,"X":28,"Y":21,"Orientation":2,"Id":160,"SpecContainerId":154},{"RoomZoneId":1,"X":1,"Y":18,"Orientation":1,"Id":144,"SpecContainerId":224},{"RoomZoneId":1,"X":21,"Orientation":3,"Id":165,"SpecContainerId":238}],"X":4,"Y":4,"Id":36,"SpecContainerId":5020},{"Creatures":[{"RoomZoneId":1,"X":16,"Y":10,"Id":70,"SpecContainerId":1081},{"RoomZoneId":1,"X":26,"Y":16,"Orientation":2,"Id":59,"SpecContainerId":1029},{"RoomZoneId":1,"X":25,"Y":21,"Orientation":1,"Id":57,"SpecContainerId":1029},{"RoomZoneId":1,"X":18,"Y":28,"Orientation":2,"Id":66,"SpecContainerId":1081}],"Triggers":[{"SizeX":14,"SizeY":7,"RoomZoneId":1,"X":17,"Y":32,"Id":6,"SpecContainerId":52},{"SizeX":14,"SizeY":7,"RoomZoneId":1,"X":17,"Y":2,"Id":7,"SpecContainerId":52}],"Decorations":[{"RoomZoneId":1,"X":18,"Y":16,"Orientation":1,"Id":146,"SpecContainerId":224},{"RoomZoneId":1,"X":17,"Y":24,"Orientation":1,"Id":145,"SpecContainerId":224},{"RoomZoneId":1,"X":13,"Y":17,"Orientation":3,"Id":147,"SpecContainerId":223},{"RoomZoneId":1,"X":22,"Y":6,"Orientation":3,"Id":173,"SpecContainerId":236}],"X":4,"Y":5,"Id":39,"SpecContainerId":5020}],"CreatureTiers":[{"SpecContainerId":1081},{"SpecContainerId":1029},{"SpecContainerId":1003},{"SpecContainerId":1001}],"TrapTiers":[{"SpecContainerId":79}],"ThemeId":25})JSON");
+}
+
 MQEL_json GetCreatureloot()
 {
     return MQEL_json::parse(R"([{"Id":45,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":46,"Gold":9,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":47,"Gold":1,"Xp":2,"LifeForce":2,"HealthOrbFragments":1},{"Id":48,"Gold":1,"Xp":2,"HealthOrbFragments":1},{"Id":49,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":50,"Gold":3,"Xp":2,"LifeForce":5,"HealthOrbFragments":1},{"Id":68,"Gold":2,"Xp":2,"HealthOrbFragments":1},{"Id":58,"Gold":2,"Xp":8,"LifeForce":4,"HealthOrbFragments":16},{"Id":65,"Gold":1,"Xp":2,"LifeForce":2,"HealthOrbFragments":1},{"Id":56,"Gold":1,"Xp":12,"LifeForce":1,"HealthOrbFragments":24,"InventoryItems":[{"$type":"HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts","ItemLevel":1,"ArchetypeId":9,"PrimaryStatsModifiers":[0.354,0.998,0.021],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":37},{"$type":"HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts","ItemLevel":1,"ArchetypeId":8,"PrimaryStatsModifiers":[0.375,0.364,0.821],"IsSellable":true,"TemplateId":40}]},{"Id":44,"Gold":1,"Xp":2,"LifeForce":5,"HealthOrbFragments":1},{"Id":69,"Gold":2,"Xp":2,"HealthOrbFragments":1},{"Id":81,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":4},{"Id":70,"Gold":2,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":59,"Gold":3,"Xp":8,"LifeForce":2,"HealthOrbFragments":16},{"Id":57,"Gold":1,"Xp":8,"LifeForce":5,"HealthOrbFragments":16},{"Id":66,"Gold":2,"Xp":2,"LifeForce":3,"HealthOrbFragments":1}])");
@@ -88,15 +101,15 @@ MQEL_json GetDefenderconsumables()
 void StartAttack(Gameserver *Server, std::string Request, std::string Body)
 {
     auto Parsed = MQEL_json::parse(Body);
+    Infoprint(va("StartAttack Body: %s", Body.c_str()));
     eAttacksource Attacksource = (eAttacksource)Parsed["attackSource"].get<uint32_t>();
     eAttacktype Attacktype = (eAttacktype)Parsed["attackType"].get<uint32_t>();
     eCastletype Castletype = (eCastletype)Parsed["castleType"].get<uint32_t>();
     bool Tutorial = Attacktype == eAttacktype::None || Attacktype == eAttacktype::Progression;
 
     // Log this event.
-    Infoprint(va("%s a %s-castle from %s",
-        [Attacktype]() -> const char *
-        {
+    Infoprint(va("%s a %s-castle from %s", [Attacktype]() -> const char *
+                 {
             switch (Attacktype)
             {
                 case eAttacktype::Competition: return "Challenging";
@@ -106,19 +119,15 @@ void StartAttack(Gameserver *Server, std::string Request, std::string Body)
                 case eAttacktype::Visit: return "Visiting";
                 case eAttacktype::None: return "Querying";
             }
-            return "";
-        }(),
-        [Castletype]() -> const char *
-        {
+            return ""; }(), [Castletype]() -> const char *
+                 {
             switch (Castletype)
             {
                 case eCastletype::Ubisoft: return "bot";
                 case eCastletype::User: return "player";
             }
-            return "";
-        }(),
-        [Attacksource]() -> const char *
-        {
+            return ""; }(), [Attacksource]() -> const char *
+                 {
             switch (Attacksource)
             {
                 case eAttacksource::Chat: return "chat-link";
@@ -131,42 +140,57 @@ void StartAttack(Gameserver *Server, std::string Request, std::string Body)
                 case eAttacksource::Quest: return "questlog";
                 case eAttacksource::Regular: return "worldmap";
             }
-            return "";
-        }()));
+            return ""; }()));
 
     // Create the attack ID;
-    if (!Tutorial) CurrentattackID = time(NULL);
-    if (Tutorial && Attacktype == eAttacktype::None) CurrentattackID = TutorialID1;
-    if (Tutorial && Attacktype == eAttacktype::Progression) CurrentattackID = TutorialID1;
+    if (!Tutorial)
+        CurrentattackID = time(NULL);
+    if (Tutorial && Attacktype == eAttacktype::None)
+        CurrentattackID = TutorialID1;
+    if (Tutorial && Attacktype == eAttacktype::Progression)
+        CurrentattackID = TutorialID2;
 
     // Create the challenge.
     auto Response = MQEL_json::object();
-                    Response["Result"]["AttackId"] = va("%x", CurrentattackID);
-                    Response["Result"]["Castle"] = GetCastle(Parsed["castleAccountId"], Castletype);
-    if(Tutorial)    Response["Result"]["CastleType"] = Parsed["castleType"].get<uint32_t>();
-                    Response["Result"]["Level"] = Tutorial ? 1 : GetCastlelevel();
-                    Response["Result"]["Hero"] = Backend::Hero::Serialize();
-                    Response["Result"]["AttackerDisplayName"] = "Hedgehog";
-                    Response["Result"]["CreatureLoot"] = GetCreatureloot();
-                    Response["Result"]["TrapLoot"] = GetTraploot();
-    if(!Tutorial)   Response["Result"]["FirstResurrectionCost"] = 500;
-                    Response["Result"]["AttackRandomSeed"] = CurrentattackID;
-    if(!Tutorial)   Response["Result"]["UnlockedSpells"] = GetSpells();
-                    Response["Result"]["UnlockedEmotes"] = MQEL_json::parse(R"([ 1, 2, 3 ])");
-                    Response["Result"]["AttackUserSettings"] = MQEL_json::object();
-                    Response["Result"]["VictoryConditionRewardRatios"] = MQEL_json::parse(R"([ 1, 0.75, 0.5 ])");
-                    Response["Result"]["FreeInventorySlotsCount"] = 42;
-    if(!Tutorial)   Response["Result"]["InventoryConsumablesInfo"] = GetAttackerconsumables();
-    if(!Tutorial)   Response["Result"]["DefenderActiveConsumables"] = GetDefenderconsumables();
-                    Response["Result"]["TreasureRoomStealableIGC"] = GetIGCreward();
-                    Response["Result"]["TreasureRoomStealableLifeForce"] = GetLifereward();
-    if(!Tutorial)   Response["Result"]["StealableMines"] = GetMines();
-    if(Tutorial)    Response["Result"]["IsTutorial"] = true;
-                    Response["Result"]["TreasureRoomGoldRatio"] = 0.3;
-                    Response["Result"]["TreasureRoomLifeForceRatio"] = 0.3;
-                    Response["Result"]["AttackType"] = Tutorial ? 5 : Parsed["attackType"].get<uint32_t>();
-    if(!Tutorial)   Response["Result"]["CastleValidationDuration"] = 44.23333;
-                    Response["Result"]["IsResurrectionAllowed"] = true;
+    Response["Result"]["AttackId"] = va("%x", CurrentattackID);
+    if (Tutorial && Attacktype == eAttacktype::None)
+        Response["Result"]["Castle"] = GetTutorialcastle(Attacktype);
+    if (Tutorial && Attacktype == eAttacktype::Progression)
+        Response["Result"]["Castle"] = GetCastle(Parsed["castleAccountId"], Castletype);
+    if (!Tutorial)
+        Response["Result"]["Castle"] = GetCastle(Parsed["castleAccountId"], Castletype);
+    if (Tutorial)
+        Response["Result"]["CastleType"] = Parsed["castleType"].get<uint32_t>();
+    Response["Result"]["Level"] = Tutorial ? 1 : GetCastlelevel();
+    Response["Result"]["Hero"] = Backend::Hero::Serialize();
+    Response["Result"]["AttackerDisplayName"] = "Hedgehog";
+    Response["Result"]["CreatureLoot"] = GetCreatureloot();
+    Response["Result"]["TrapLoot"] = GetTraploot();
+    if (!Tutorial)
+        Response["Result"]["FirstResurrectionCost"] = 500;
+    Response["Result"]["AttackRandomSeed"] = CurrentattackID;
+    if (!Tutorial)
+        Response["Result"]["UnlockedSpells"] = GetSpells();
+    Response["Result"]["UnlockedEmotes"] = MQEL_json::parse(R"([ 1, 2, 3 ])");
+    Response["Result"]["AttackUserSettings"] = MQEL_json::object();
+    Response["Result"]["VictoryConditionRewardRatios"] = MQEL_json::parse(R"([ 1, 0.75, 0.5 ])");
+    Response["Result"]["FreeInventorySlotsCount"] = 42;
+    if (!Tutorial)
+        Response["Result"]["InventoryConsumablesInfo"] = GetAttackerconsumables();
+    if (!Tutorial)
+        Response["Result"]["DefenderActiveConsumables"] = GetDefenderconsumables();
+    Response["Result"]["TreasureRoomStealableIGC"] = GetIGCreward();
+    Response["Result"]["TreasureRoomStealableLifeForce"] = GetLifereward();
+    if (!Tutorial)
+        Response["Result"]["StealableMines"] = GetMines();
+    if (Tutorial)
+        Response["Result"]["IsTutorial"] = true;
+    Response["Result"]["TreasureRoomGoldRatio"] = 0.3;
+    Response["Result"]["TreasureRoomLifeForceRatio"] = 0.3;
+    Response["Result"]["AttackType"] = Tutorial ? 5 : Parsed["attackType"].get<uint32_t>();
+    if (!Tutorial)
+        Response["Result"]["CastleValidationDuration"] = 44.23333;
+    Response["Result"]["IsResurrectionAllowed"] = true;
 
     // Return the castle info.
     Sendreply(Server, Response.dump());
@@ -190,8 +214,51 @@ void EndAttack(Gameserver *Server, std::string Request, std::string Body)
     }
 
     // Modify hardcoded data.
-    Response["Result"]["AttackId"] = va("%x", CurrentattackID);
+    // Synchronize the hardcoded reward with the persistent backend Hero.
+    uint32_t XPReward = 0;
 
+    if (CurrentattackID == TutorialID1)
+        XPReward = 60;
+    else if (CurrentattackID == TutorialID2)
+        XPReward = 66;
+    else
+        XPReward = 333;
+
+    // Read the XP currently stored by the backend.
+    auto HeroState = Backend::Hero::Serialize();
+
+    uint32_t CurrentXP = 0;
+
+    if (!HeroState["XP"].is_null())
+        CurrentXP = HeroState["XP"].get<uint32_t>();
+
+    // Store the new XP in the backend.
+    Backend::Hero::SetXP(CurrentXP + XPReward);
+
+    // Serialize again so the response contains the actual XP.
+    auto UpdatedHero = Backend::Hero::Serialize();
+
+    Response["Result"]["TotalXp"] = UpdatedHero["XP"];
+    Response["Result"]["HeroLevel"] = UpdatedHero["Level"];
+
+    // Update the XP notification sent to the client.
+    if (!Response["Notifications"].is_null())
+    {
+        for (auto &Notification : Response["Notifications"])
+        {
+            if (!Notification["$type"].is_null() &&
+                Notification["$type"].get<std::string>().find("HeroXpChangedNotification") != std::string::npos)
+            {
+                Notification["XpAdded"] = XPReward;
+                Notification["TotalXp"] = UpdatedHero["XP"];
+                Notification["Level"] = UpdatedHero["Level"];
+                break;
+            }
+        }
+    }
+
+    // Keep the current server-generated attack ID.
+    Response["Result"]["AttackId"] = va("%x", CurrentattackID);
 
     Sendreply(Server, Response.dump());
 }
@@ -212,8 +279,10 @@ void Resurrect(Gameserver *Server, std::string Request, std::string Body)
 }
 
 // Add the services to the gameserver on startup.
-namespace {
-    struct Startup {
+namespace
+{
+    struct Startup
+    {
         Startup()
         {
             Mapservice("/AttackService.hqs/StartAttack", StartAttack);

@@ -15,12 +15,16 @@ Write-Host "Installing OpenSSL (x86) via vcpkg (first time takes ~10 min)..."
 $toolchain = Join-Path $vcpkg 'scripts\buildsystems\vcpkg.cmake'
 
 Write-Host "Building mqelserver..."
-cmake -S "$root\src\mqelserver" -B "$root\build\server" -G "Visual Studio 17 2022" -A Win32 `
-    -DCMAKE_TOOLCHAIN_FILE="$toolchain" -DVCPKG_TARGET_TRIPLET=x86-windows -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+cmake -S "$root\src\mqelserver" -B "$root\build\server" -G "Visual Studio 18 2026" -A Win32 `
+    -DCMAKE_TOOLCHAIN_FILE="$toolchain" -DVCPKG_TARGET_TRIPLET=x86-windows
+
 cmake --build "$root\build\server" --config Release
 
 Write-Host "Building cert-shim (certpatch.dll + inject.exe)..."
-cmake -S "$root\src\certshim" -B "$root\build\certshim" -G "Visual Studio 17 2022" -A Win32 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+cmake -S "$root\src\certshim" -B "$root\build\certshim" -G "Visual Studio 18 2026" -A Win32
+
 cmake --build "$root\build\certshim" --config Release
 
 Write-Host "Staging binaries into bin\ ..."

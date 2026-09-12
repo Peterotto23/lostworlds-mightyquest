@@ -26,14 +26,46 @@ void GetAttackSelectionList(Gameserver *Server, std::string Request, std::string
 }
 void GetCastleInfo(Gameserver *Server, std::string Request, std::string Body)
 {
-    MQEL_json Response = MQEL_json::parse(R"({"Result":{"DefenderAccountSummary":{"Id":3,"DisplayName":"Hedgehog Castle","OasisNameId":16675},"CastleType":1,"RoomCount":7,"Difficulty":2,"PotentialLoot":{"Xp":90,"TreasureRoomStealableIGC":15,"TreasureRoomStealableLifeForce":15,"IGC":50,"LifeForce":50},"IsNew":true,"IsCastleAttackable":true,"AttackabilityStatus":1,"AttackType":5,"Level":1,"Stats":{"TotalConstructionPoints":58,"MaxConstructionPoints":58,"TrapCount":13,"WinRatio":0.5,"WinRatioDifficulty":2},"VictoryConditionRewardRatios":[1,0.75,0.5]}})");
+    MQEL_json Response = MQEL_json::object();
+
+    // Default values for the progression castle.
+    Response["Result"]["DefenderAccountSummary"]["Id"] = 3;
+    Response["Result"]["DefenderAccountSummary"]["DisplayName"] = "Hedgehog Castle";
+    Response["Result"]["DefenderAccountSummary"]["OasisNameId"] = 16675;
+
+    Response["Result"]["CastleType"] = 1;
+    Response["Result"]["RoomCount"] = 7;
+    Response["Result"]["Difficulty"] = 2;
+
+    Response["Result"]["PotentialLoot"]["Xp"] = 90;
+    Response["Result"]["PotentialLoot"]["TreasureRoomStealableIGC"] = 15;
+    Response["Result"]["PotentialLoot"]["TreasureRoomStealableLifeForce"] = 15;
+    Response["Result"]["PotentialLoot"]["IGC"] = 50;
+    Response["Result"]["PotentialLoot"]["LifeForce"] = 50;
+
+    Response["Result"]["IsNew"] = true;
+    Response["Result"]["IsCastleAttackable"] = true;
+    Response["Result"]["AttackabilityStatus"] = 1;
+    Response["Result"]["AttackType"] = 5;
+    Response["Result"]["Level"] = 1;
+
+    Response["Result"]["Stats"]["TotalConstructionPoints"] = 58;
+    Response["Result"]["Stats"]["MaxConstructionPoints"] = 58;
+    Response["Result"]["Stats"]["TrapCount"] = 13;
+    Response["Result"]["Stats"]["WinRatio"] = 0.5;
+    Response["Result"]["Stats"]["WinRatioDifficulty"] = 2;
+
+    Response["Result"]["VictoryConditionRewardRatios"] =
+        MQEL_json::parse(R"([1,0.75,0.5])");
 
     Sendreply(Server, Response.dump());
 }
 
 // Add the services to the gameserver on startup.
-namespace {
-    struct Startup {
+namespace
+{
+    struct Startup
+    {
         Startup()
         {
             Mapservice("/AttackSelectionService.hqs/GetAttackSelectionList", GetAttackSelectionList);

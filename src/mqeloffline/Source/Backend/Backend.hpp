@@ -58,6 +58,7 @@ namespace Backend
         template<typename C = int> void Increaselevel(uint32_t Level, C Class = Getheroclass());
         template<typename C = int> void Increasestats(Stat_t Delta, C Class = Getheroclass());
         template<typename C = int> void IncreaseXP(uint32_t XP, C Class = Getheroclass());
+        template<typename C = int> void SetXP(uint32_t XP, C Class = Getheroclass());
 
         // Modify the characters equipment.
         template<typename T = int, typename C = int>

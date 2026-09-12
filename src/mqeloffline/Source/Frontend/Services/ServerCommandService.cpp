@@ -20,46 +20,50 @@ void Handletracking(Request_t Request)
     // Handle the telemetry.
     switch (Hash::FNV1a_32(Type.c_str()))
     {
-        // Client has started.
-        case Hash::FNV1a_32("GameStartTracking"):
-        {
-            auto Version = Trackinginfo.Get("GameClientVersion", "");
-            auto Timestamp = Trackinginfo.Get("CreationDate", "");
-            auto MachineID = Trackinginfo.Get("MachineId", "");
-            auto TagID = Trackinginfo.Get("TrackingTagId", 0);
+    // Client has started.
+    case Hash::FNV1a_32("GameStartTracking"):
+    {
+        auto Version = Trackinginfo.Get("GameClientVersion", "");
+        auto Timestamp = Trackinginfo.Get("CreationDate", "");
+        auto MachineID = Trackinginfo.Get("MachineId", "");
+        auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
-            Infoprint(va("Telemetry: Client started with game-version %s and HWID %s", Version.c_str(), MachineID.c_str()));
-            break;
-        }
+        Infoprint(va("Telemetry: Client started with game-version %s and HWID %s", Version.c_str(), MachineID.c_str()));
+        break;
+    }
 
-        // Clients state has changed.
-        case Hash::FNV1a_32("GameStateTracking"):
-        {
-            auto Totaltime = Trackinginfo.Get("GameStateTotalTime", 0);
-            auto Nextstate = Trackinginfo.Get("NextGameStateType", 0);
-            auto Idletime = Trackinginfo.Get("GameStateIdleTime", 0);
-            auto Statetype = Trackinginfo.Get("GameStateType", 0);
-            auto Timestamp = Trackinginfo.Get("CreationDate", "");
-            auto StateID = Trackinginfo.Get("GameStateId", 0);
-            auto TagID = Trackinginfo.Get("TrackingTagId", 0);
+    // Clients state has changed.
+    case Hash::FNV1a_32("GameStateTracking"):
+    {
+        auto Totaltime = Trackinginfo.Get("GameStateTotalTime", 0);
+        auto Nextstate = Trackinginfo.Get("NextGameStateType", 0);
+        auto Idletime = Trackinginfo.Get("GameStateIdleTime", 0);
+        auto Statetype = Trackinginfo.Get("GameStateType", 0);
+        auto Timestamp = Trackinginfo.Get("CreationDate", "");
+        auto StateID = Trackinginfo.Get("GameStateId", 0);
+        auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
-            Infoprint(va("Telemetry: Gamestate %i updated", StateID));
-            break;
-        }
+        Infoprint(va("Telemetry: Gamestate %i updated", StateID));
+        break;
+    }
 
-        // Client wants a new logfile / epoch.
-        case Hash::FNV1a_32("GameInitializeTracking"):
-        {
-            auto Timestamp = Trackinginfo.Get("CreationDate", "");
-            auto TagID = Trackinginfo.Get("TrackingTagId", 0);
+    // Client wants a new logfile / epoch.
+    case Hash::FNV1a_32("GameInitializeTracking"):
+    {
+        auto Timestamp = Trackinginfo.Get("CreationDate", "");
+        auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
-            Infoprint("Telemetry: Epoch changed");
-            break;
-        }
+        Infoprint("Telemetry: Epoch changed");
+        break;
+    }
 
-        // Errors.
-        case Hash::FNV1a_32("Invalid"): Infoprint("Could not parse telemetry."); break;
-        default: Infoprint(va("No handler for tracking-tag \"%s\".", Type.c_str())); break;
+    // Errors.
+    case Hash::FNV1a_32("Invalid"):
+        Infoprint("Could not parse telemetry.");
+        break;
+    default:
+        Infoprint(va("No handler for tracking-tag \"%s\".", Type.c_str()));
+        break;
     }
 }
 void Handleidle(Request_t Request)
@@ -117,15 +121,14 @@ void Handleitembuy(Request_t Request)
     // Subtract the price from our wallet..
     Backend::Wallet::Updateamount((eCurrencytype)Currencytype, Currencyamount * -1);
     Infoprint(va("Bought item %s for %i %s.", SKUCode.c_str(), Currencyamount, [&Currencytype]()
-    {
+                 {
         switch ((eCurrencytype)Currencytype)
         {
             case eCurrencytype::PremiumCash:    return "Premium-cash";
             case eCurrencytype::Lifeforce:      return "Lifeforce";
             case eCurrencytype::IGC:            return "Gold";
             default:                            return "???";
-        }
-    }()));
+        } }()));
 
     /*
         TODO(Convery):
@@ -146,15 +149,14 @@ void Handleconsumable(Request_t Request)
     // Subtract the price from our wallet..
     Backend::Wallet::Updateamount((eCurrencytype)Currencytype, Currencyamount * -1);
     Infoprint(va("Bought consumable %s for %i %s.", SKUCode.c_str(), Currencyamount, [&Currencytype]()
-    {
+                 {
         switch ((eCurrencytype)Currencytype)
         {
             case eCurrencytype::PremiumCash:    return "Premium-cash";
             case eCurrencytype::Lifeforce:      return "Lifeforce";
             case eCurrencytype::IGC:            return "Gold";
             default:                            return "???";
-        }
-    }()));
+        } }()));
 
     /*
         TODO(Convery):
@@ -170,7 +172,7 @@ void Handleequipment(Request_t Request)
     auto HeroID = Request.Get("HeroId", 0);
 
     Infoprint(va("Shuffled the %s's inventory from %i to %i.", [&HeroID]() -> const char *
-    {
+                 {
         switch ((eHerotype)HeroID)
         {
             case eHerotype::Archer:     return "Archer";
@@ -178,8 +180,7 @@ void Handleequipment(Request_t Request)
             case eHerotype::Mage:       return "Mage";
             case eHerotype::Runaway:    return "Runaway";
             default:                    return "???";
-        }
-    }(), SRCSlot, DSTSlot));
+        } }(), SRCSlot, DSTSlot));
 
     /*
         TODO(Convery):
@@ -199,10 +200,23 @@ void Handleinbox(Request_t Request)
     */
 }
 
+void Handleinventoryswap(Request_t Request)
+{
+    auto DSTSlot = Request.Get("DestinationSlotId", 0);
+    auto SRCSlot = Request.Get("SourceSlotId", 0);
+
+    Infoprint(va("Inventory swap: %i -> %i.", SRCSlot, DSTSlot));
+}
+
+void Handlelogout(Request_t Request)
+{
+    Infoprint("Client logout command received.");
+}
+
 // Endpoints.
 void SendCommand(Gameserver *Server, std::string Request, std::string Body)
 {
-    Request_t Parsed{ Body };
+    Request_t Parsed{Body};
 
     // Deserialize the commands.
     for (auto &Item : Parsed.Get("commands", std::vector<Message_t>{}))
@@ -215,27 +229,57 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         // Trigger the callback.
         switch (Hash::FNV1a_32(Type.c_str()))
         {
-            // Statistics / telemetry.
-            case Hash::FNV1a_32("TrackingCommand"): Handletracking(Item); break;
-            case Hash::FNV1a_32("ClientIdleCommand"): Handleidle(Item); break;
+        // Statistics / telemetry.
+        case Hash::FNV1a_32("TrackingCommand"):
+            Handletracking(Item);
+            break;
+        case Hash::FNV1a_32("ClientIdleCommand"):
+            Handleidle(Item);
+            break;
 
-            // Questing.
-            case Hash::FNV1a_32("StartAssignmentCommand"): Handleassignmentaccepted(Item); break;
-            case Hash::FNV1a_32("CompleteAssignmentCommand"): Handleassignmentcomplete(Item); break;
-            case Hash::FNV1a_32("ExecuteAssignmentActionCommand"): Handleassignmentupdate(Item); break;
+        // Questing.
+        case Hash::FNV1a_32("StartAssignmentCommand"):
+            Handleassignmentaccepted(Item);
+            break;
+        case Hash::FNV1a_32("CompleteAssignmentCommand"):
+            Handleassignmentcomplete(Item);
+            break;
+        case Hash::FNV1a_32("ExecuteAssignmentActionCommand"):
+            Handleassignmentupdate(Item);
+            break;
 
-            // Marketplace.
-            case Hash::FNV1a_32("BuyCommand"): Handlecastlebuy(Item); break;
-            case Hash::FNV1a_32("BuyHeroItemCommand"): Handleitembuy(Item); break;
-            case Hash::FNV1a_32("BuyConsumableCommand"): Handleconsumable(Item); break;
+        // Marketplace.
+        case Hash::FNV1a_32("BuyCommand"):
+            Handlecastlebuy(Item);
+            break;
+        case Hash::FNV1a_32("BuyHeroItemCommand"):
+            Handleitembuy(Item);
+            break;
+        case Hash::FNV1a_32("BuyConsumableCommand"):
+            Handleconsumable(Item);
+            break;
 
-            // Hero modification.
-            case Hash::FNV1a_32("HeroEquipmentEquipCommand"): Handleequipment(Item); break;
-            case Hash::FNV1a_32("InboxCollectToHeroInventoryCommand"): Handleinbox(Item); break;
+        // Hero modification.
+        case Hash::FNV1a_32("HeroEquipmentEquipCommand"):
+            Handleequipment(Item);
+            break;
+        case Hash::FNV1a_32("InboxCollectToHeroInventoryCommand"):
+            Handleinbox(Item);
+            break;
+        case Hash::FNV1a_32("InventorySwapItemCommand"):
+            Handleinventoryswap(Item);
+            break;
+        case Hash::FNV1a_32("LogoutCommand"):
+            Handlelogout(Item);
+            break;
 
-            // Errors.
-            case Hash::FNV1a_32("Invalid"): Infoprint("Could not parse command."); break;
-            default: Infoprint(va("No handler for command \"%s\".", Type.c_str())); break;
+        // Errors.
+        case Hash::FNV1a_32("Invalid"):
+            Infoprint("Could not parse command.");
+            break;
+        default:
+            Infoprint(va("No handler for command \"%s\".", Type.c_str()));
+            break;
         }
     }
 
@@ -243,8 +287,10 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
 }
 
 // Add the services to the gameserver on startup.
-namespace {
-    struct Startup {
+namespace
+{
+    struct Startup
+    {
         Startup()
         {
             Mapservice("/ServerCommandService.hqs/SendCommands", SendCommand);
