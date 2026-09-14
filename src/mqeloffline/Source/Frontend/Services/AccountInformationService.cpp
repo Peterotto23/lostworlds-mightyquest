@@ -67,7 +67,8 @@ MQEL_json GetHeroes()
     for (int i = 0; i < (int)eHerotype::Count; ++i)
     {
         auto Serialized = Backend::Hero::Serialize(i);
-        if (Serialized.is_null()) continue;
+        if (Serialized.is_null())
+            continue;
         Object += Serialized;
     }
 
@@ -106,46 +107,62 @@ void GetAccountInformation(Gameserver *Server, std::string Request, std::string 
     // Static account information.
     auto Battlelog = MQEL_json::parse(R"({"OfflinePeriod":{"EndDateTime":"2016-10-16T10:40:52Z"}})");
     auto Inventory = MQEL_json::parse(R"({"InventoryTabCount":2})");
+
+    Inventory["Items"] = Backend::Inventory::Serialize();
+    Inventory["Inbox"] = Backend::Inventory::Serializeinbox();
     auto Emotes = MQEL_json::parse(R"([1,2,3])");
     bool Herocreated = Backend::Hero::Getheroclass() != 0;
 
     // Create the response based on if it's the first run.
     auto Response = MQEL_json::object();
-                    Response["Result"]["News"] = GetNews();
-    if(Herocreated) Response["Result"]["CompletedAchievements"] = GetAchivements();
-                    Response["Result"]["DefendLog"] = Battlelog;
-                    Response["Result"]["CountryCode"] = "SE";
-                    Response["Result"]["ShopSkuModifiers"] = GetShopmodifiers();
-                    Response["Result"]["ClientSettings"] = GetClientsettings();
-                    Response["Result"]["TargetedAttackAvailableCount"] = 5;
-                    Response["Result"]["AccountId"] = 3123971;
-    if(Herocreated) Response["Result"]["DisplayName"] = "Hedgehog";
-    if(Herocreated) Response["Result"]["DisplayNameValidationDate"] = "2016-08-27T01:22:52Z";
-    if(Herocreated) Response["Result"]["GamerScore"] = 15;
-    if(Herocreated) Response["Result"]["SelectedHeroId"] = Backend::Hero::Getheroclass();
-                    Response["Result"]["Privileges"] = Herocreated ? 401 : 9;
-                    Response["Result"]["Wallet"] = GetWallet(Herocreated);
-    if(Herocreated) Response["Result"]["CastleRenovationLevel"] = 2;
-                    Response["Result"]["BuildInfo"] = GetBuild(Herocreated);
-    if(Herocreated) Response["Result"]["Heroes"] = GetHeroes();
-                    Response["Result"]["Inventory"] = Inventory;
-                    Response["Result"]["BuyBack"] = MQEL_json::object();
-                    Response["Result"]["Stats"] = GetStats(Herocreated);
-    if(Herocreated) Response["Result"]["CompletedAssignments"] = GetQuests();
-                    Response["Result"]["UnlockedEmotes"] = Emotes;
-    if(Herocreated) Response["Result"]["Objectives"] = GetObjectives();
-                    Response["Result"]["AvatarId"] = 10;
-                    Response["Result"]["ProfanityFiltering"] = true;
-    if(Herocreated) Response["Result"]["LeagueId"] = 1;
-    if(Herocreated) Response["Result"]["SubLeagueId"] = 1;
+    Response["Result"]["News"] = GetNews();
+    if (Herocreated)
+        Response["Result"]["CompletedAchievements"] = GetAchivements();
+    Response["Result"]["DefendLog"] = Battlelog;
+    Response["Result"]["CountryCode"] = "SE";
+    Response["Result"]["ShopSkuModifiers"] = GetShopmodifiers();
+    Response["Result"]["ClientSettings"] = GetClientsettings();
+    Response["Result"]["TargetedAttackAvailableCount"] = 5;
+    Response["Result"]["AccountId"] = 3123971;
+    if (Herocreated)
+        Response["Result"]["DisplayName"] = "Hedgehog";
+    if (Herocreated)
+        Response["Result"]["DisplayNameValidationDate"] = "2016-08-27T01:22:52Z";
+    if (Herocreated)
+        Response["Result"]["GamerScore"] = 15;
+    if (Herocreated)
+        Response["Result"]["SelectedHeroId"] = Backend::Hero::Getheroclass();
+    Response["Result"]["Privileges"] = Herocreated ? 401 : 9;
+    Response["Result"]["Wallet"] = GetWallet(Herocreated);
+    if (Herocreated)
+        Response["Result"]["CastleRenovationLevel"] = 2;
+    Response["Result"]["BuildInfo"] = GetBuild(Herocreated);
+    if (Herocreated)
+        Response["Result"]["Heroes"] = GetHeroes();
+    Response["Result"]["Inventory"] = Inventory;
+    Response["Result"]["BuyBack"] = MQEL_json::object();
+    Response["Result"]["Stats"] = GetStats(Herocreated);
+    if (Herocreated)
+        Response["Result"]["CompletedAssignments"] = GetQuests();
+    Response["Result"]["UnlockedEmotes"] = Emotes;
+    if (Herocreated)
+        Response["Result"]["Objectives"] = GetObjectives();
+    Response["Result"]["AvatarId"] = 10;
+    Response["Result"]["ProfanityFiltering"] = true;
+    if (Herocreated)
+        Response["Result"]["LeagueId"] = 1;
+    if (Herocreated)
+        Response["Result"]["SubLeagueId"] = 1;
 
     // Return the response.
     Sendreply(Server, Response.dump());
 }
 
 // Add the services to the gameserver on startup.
-namespace {
-    struct Startup {
+namespace
+{
+    struct Startup
+    {
         Startup()
         {
             Mapservice("/AccountInformationService.hqs/GetAccountInformation", GetAccountInformation);

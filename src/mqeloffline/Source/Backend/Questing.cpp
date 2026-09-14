@@ -15,6 +15,8 @@ namespace Backend
         // The clients progress.
         std::unordered_map<uint32_t /* QuestID */, bool /* Complete */> *Questmap;
 
+        void Savequests();
+
         // Notify the frontend when successful.
         void Notifyassignment(uint32_t QuestID, uint32_t ActionID)
         {
@@ -32,12 +34,30 @@ namespace Backend
         void Start(uint32_t QuestID)
         {
             Infoprint(va("Client started quest %i", QuestID));
+
+            auto Iterator = Questmap->find(QuestID);
+
+            // Never reset a quest that was already completed.
+            if (Iterator != Questmap->end() && Iterator->second)
+            {
+                Infoprint(va(
+                    "Quest %i was already completed; keeping it completed.",
+                    QuestID));
+
+                return;
+            }
+
             (*Questmap)[QuestID] = false;
+            Savequests();
         }
         void Complete(uint32_t QuestID)
         {
             Infoprint(va("Client completed quest %i", QuestID));
+
             (*Questmap)[QuestID] = true;
+
+            // Persist immediately so a crash/logout cannot lose progression.
+            Savequests();
         }
         std::vector<uint32_t> Getcompleted()
         {
@@ -89,7 +109,8 @@ namespace Backend
 
             // Load the file from the archive.
             auto Filebuffer = Package::Read("Quests.BB");
-            if (Filebuffer.size() == 0) return;
+            if (Filebuffer.size() == 0)
+                return;
 
             // Deserialize the buffer.
             Bytebuffer Reader(Filebuffer);
@@ -98,12 +119,21 @@ namespace Backend
                 uint32_t QuestID;
                 bool Status;
 
-                if (!Reader.Read(QuestID)) break;
-                if (!Reader.Read(Status)) break;
+                if (!Reader.Read(QuestID))
+                    break;
+                if (!Reader.Read(Status))
+                    break;
 
                 (*Questmap)[QuestID] = Status;
             }
         }
-        namespace { struct Startup { Startup() { Loadquests(); }; }; static Startup Loader{}; }
+        namespace
+        {
+            struct Startup
+            {
+                Startup() { Loadquests(); };
+            };
+            static Startup Loader{};
+        }
     }
 }

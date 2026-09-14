@@ -18,6 +18,8 @@ namespace Backend
             uint32_t Capacity;
         };
         std::array<Wallet_t, (int)eCurrencytype::Count> Wallets{};
+        
+        void Savewallets();
 
         // Notify the frontend when updating.
         void NotifyWalletamountupdate(int Type)
@@ -43,48 +45,57 @@ namespace Backend
         }
 
         // Modify the wallet state.
-        template<> int32_t Getamount(int Type)
+        template <>
+        int32_t Getamount(int Type)
         {
             return Wallets[Type].Amount;
         }
-        template<> int32_t Getamount(eCurrencytype Type)
+        template <>
+        int32_t Getamount(eCurrencytype Type)
         {
             return Getamount((int)Type);
         }
-        template<> uint32_t Getcapacity(int Type)
+        template <>
+        uint32_t Getcapacity(int Type)
         {
             return Wallets[Type].Capacity;
         }
-        template<> uint32_t Getcapacity(eCurrencytype Type)
+        template <>
+        uint32_t Getcapacity(eCurrencytype Type)
         {
             return Getcapacity((int)Type);
         }
-        template<> void Setcapacity(int Type, uint32_t Max)
+        template <>
+        void Setcapacity(int Type, uint32_t Max)
         {
             Wallets[Type].Capacity = Max;
             NotifyWalletcapacityupdate(Type);
         }
-        template<> void Setcapacity(eCurrencytype Type, uint32_t Max)
+        template <>
+        void Setcapacity(eCurrencytype Type, uint32_t Max)
         {
             return Setcapacity((int)Type, Max);
         }
-        template<> void Updateamount(int Type, int32_t Delta)
+        template <>
+        void Updateamount(int Type, int32_t Delta)
         {
             Wallets[Type].Amount += Delta;
-            if (Wallets[Type].Amount < 0)
-            {
-                Wallets[Type].Amount = 0;
-            }
 
+            if (Wallets[Type].Amount < 0)
+                Wallets[Type].Amount = 0;
+
+            Savewallets();
             NotifyWalletamountupdate(Type);
         }
-        template<> void Updateamount(eCurrencytype Type, int32_t Delta)
+        template <>
+        void Updateamount(eCurrencytype Type, int32_t Delta)
         {
             return Updateamount((int)Type, Delta);
         }
 
         // Serialize to game-readable JSON.
-        template<> MQEL_json Serialize(eCurrencytype Type)
+        template <>
+        MQEL_json Serialize(eCurrencytype Type)
         {
             auto Object = MQEL_json::object();
 
@@ -96,7 +107,8 @@ namespace Backend
 
             return Object;
         }
-        template<typename T> MQEL_json Serialize(T Type)
+        template <typename T>
+        MQEL_json Serialize(T Type)
         {
             return Serialize((eCurrencytype)Type);
         }
@@ -124,7 +136,8 @@ namespace Backend
 
             // Load the file from the archive.
             auto Filebuffer = Package::Read("Wallets.json");
-            if (Filebuffer.size() == 0) return;
+            if (Filebuffer.size() == 0)
+                return;
 
             // Deserialize the file.
             MQEL_json Object = MQEL_json::parse(Filebuffer);
@@ -134,6 +147,13 @@ namespace Backend
                 Wallets[i].Capacity = Object[va("%i", i)]["Capacity"];
             }
         }
-        namespace { struct Startup { Startup() { Loadwallets(); }; }; static Startup Loader{}; }
+        namespace
+        {
+            struct Startup
+            {
+                Startup() { Loadwallets(); };
+            };
+            static Startup Loader{};
+        }
     }
 }

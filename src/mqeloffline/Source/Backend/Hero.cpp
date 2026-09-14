@@ -12,6 +12,27 @@ namespace Backend
 {
     namespace Hero
     {
+        void Savehero();
+        const std::array<uint32_t, 31> XPThresholds = {
+            0, 0, 75, 400, 1000, 3500, 5300, 8540, 12600, 18800,
+            26225, 36725, 48935, 67655, 88975, 119075, 152825, 197945,
+            247925, 316775, 392300, 474800, 581530, 699350, 825620,
+            961700, 1156700, 1365740, 1589300, 1887500, 2268560};
+
+        uint32_t GetlevelforXP(uint32_t XP)
+        {
+            uint32_t Level = 1;
+
+            for (uint32_t Candidate = 2; Candidate <= 30; ++Candidate)
+            {
+                if (XP < XPThresholds[Candidate])
+                    break;
+
+                Level = Candidate;
+            }
+
+            return Level;
+        }
         struct Hero_t
         {
             Stat_t Stats;
@@ -191,14 +212,23 @@ namespace Backend
                 {
                     for (auto &Item : Object["EquippedSpells"])
                     {
-                        Spells.push_back(
-                            {Item["SpellSpecContainerId"],
-                             Item["SlotIndex"].is_null()
-                                 ? 0
-                                 : Item["SlotIndex"]});
+                        Spell_t Spell{};
+
+                        if (!Item["SpellSpecContainerId"].is_null())
+                        {
+                            Spell.ID =
+                                Item["SpellSpecContainerId"].get<uint32_t>();
+                        }
+
+                        if (!Item["SlotIndex"].is_null())
+                        {
+                            Spell.Slot =
+                                Item["SlotIndex"].get<uint32_t>();
+                        }
+
+                        Spells.push_back(Spell);
                     }
                 }
-
                 if (!Object["EquippedConsumables"].is_null())
                 {
                     for (auto &Item : Object["EquippedConsumables"])
@@ -315,7 +345,21 @@ namespace Backend
         template <>
         void SetXP(uint32_t XP, int Class)
         {
+            Infoprint(va(
+                "SetXP: XP=%u Level=%u -> XP=%u Level=%u",
+                Heroes[Class].TotalXP,
+                Heroes[Class].Level,
+                XP,
+                GetlevelforXP(XP)));
+
             Heroes[Class].TotalXP = XP;
+
+            uint32_t Newlevel = GetlevelforXP(XP);
+
+            if (Newlevel > Heroes[Class].Level)
+                Heroes[Class].Level = Newlevel;
+
+            Savehero();
         }
 
         template <>
@@ -387,6 +431,7 @@ namespace Backend
         void Equipgear(int Slot, Equipment_t Item, int Class)
         {
             Heroes[Class].Gear[Slot] = Item;
+            Savehero();
         }
 
         template <>
@@ -408,33 +453,112 @@ namespace Backend
         }
 
         // Load hero-info on startup and save it on exit.
+        // Load hero-info on startup and save it on exit.
         void Savehero()
         {
+            Infoprint("Savehero: starting.");
+
             auto Object = MQEL_json::object();
 
-            // Serialize the hero array.
-            Object["Mage"] =
-                Heroes[(size_t)eHerotype::Mage].Serialize();
+            try
+            {
+                Infoprint("Savehero: serializing Mage.");
+                Object["Mage"] =
+                    Heroes[(size_t)eHerotype::Mage].Serialize();
+                Infoprint("Savehero: Mage OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: Mage FAILED: %s",
+                    e.what()));
+                throw;
+            }
 
-            Object["Knight"] =
-                Heroes[(size_t)eHerotype::Knight].Serialize();
+            try
+            {
+                Infoprint("Savehero: serializing Knight.");
+                Object["Knight"] =
+                    Heroes[(size_t)eHerotype::Knight].Serialize();
+                Infoprint("Savehero: Knight OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: Knight FAILED: %s",
+                    e.what()));
+                throw;
+            }
 
-            Object["Archer"] =
-                Heroes[(size_t)eHerotype::Archer].Serialize();
+            try
+            {
+                Infoprint("Savehero: serializing Archer.");
+                Object["Archer"] =
+                    Heroes[(size_t)eHerotype::Archer].Serialize();
+                Infoprint("Savehero: Archer OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: Archer FAILED: %s",
+                    e.what()));
+                throw;
+            }
 
-            Object["Runaway"] =
-                Heroes[(size_t)eHerotype::Runaway].Serialize();
+            try
+            {
+                Infoprint("Savehero: serializing Runaway.");
+                Object["Runaway"] =
+                    Heroes[(size_t)eHerotype::Runaway].Serialize();
+                Infoprint("Savehero: Runaway OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: Runaway FAILED: %s",
+                    e.what()));
+                throw;
+            }
 
-            // Set the default hero.
-            Object["Defaulthero"] = Currenthero->Type;
+            try
+            {
+                Infoprint("Savehero: setting default hero.");
+                Object["Defaulthero"] = Currenthero->Type;
+                Infoprint("Savehero: default hero OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: default hero FAILED: %s",
+                    e.what()));
+                throw;
+            }
 
-            // Save to the archive.
-            std::string Plaintext = Object.dump(4);
-            Package::Write("Heroes.json", Plaintext);
+            try
+            {
+                Infoprint("Savehero: dumping JSON.");
+                std::string Plaintext = Object.dump(4);
+                Infoprint("Savehero: JSON dump OK.");
+
+                Package::Write("Heroes.json", Plaintext);
+
+                Infoprint("Savehero: write OK.");
+            }
+            catch (std::exception &e)
+            {
+                Infoprint(va(
+                    "Savehero: write FAILED: %s",
+                    e.what()));
+                throw;
+            }
+
+            Infoprint("Savehero: complete.");
         }
 
         void Loadhero()
         {
+            Backend::Inventory::Load();
+
             // Save the hero on exit.
             std::atexit(Savehero);
 
