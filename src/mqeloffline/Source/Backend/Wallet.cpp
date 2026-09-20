@@ -18,7 +18,7 @@ namespace Backend
             uint32_t Capacity;
         };
         std::array<Wallet_t, (int)eCurrencytype::Count> Wallets{};
-        
+
         void Savewallets();
 
         // Notify the frontend when updating.
@@ -100,10 +100,7 @@ namespace Backend
             auto Object = MQEL_json::object();
 
             Object["CurrencyType"] = (int)Type;
-            if (Wallets[(int)Type].Amount)
-            {
-                Object["Amount"] = Wallets[(int)Type].Amount;
-            }
+            Object["Amount"] = Wallets[(int)Type].Amount;
 
             return Object;
         }

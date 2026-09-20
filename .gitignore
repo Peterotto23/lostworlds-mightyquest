@@ -11,3 +11,13 @@
 # server runtime data/logs (generated next to mqelserver.exe)
 **/Plugins/
 *.log
+
+# Local/personal MQEL save data
+**/Heroes.json
+**/Inventory.json
+**/Wallets.json
+**/Quests.BB
+Plugins/MQELOffline.Localnet
+Plugins/MQELOffline.Localnet.*
+SaveBackup/
+Plugins/Logs/

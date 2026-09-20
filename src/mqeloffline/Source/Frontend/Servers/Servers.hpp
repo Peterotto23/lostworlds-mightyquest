@@ -18,6 +18,17 @@
 // This game uses a single server for everything.
 struct Gameserver : IHTTPSServer
 {
+    // Expose the SSL send function through Gameserver so service callbacks
+    // can reply using Gameserver *.
+    virtual void Send(
+        const size_t Socket,
+        std::string &Databuffer)
+    {
+        ISSLServer::Send(
+            Socket,
+            Databuffer);
+    }
+
     // Callbacks on parsed data.
     virtual void onGET(const size_t Socket, HTTPRequest &Request) override;
     virtual void onPUT(const size_t Socket, HTTPRequest &Request) override;

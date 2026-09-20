@@ -22,23 +22,65 @@ namespace Backend
             // Iterate over the castles.
             for (auto &Item : Filelist)
             {
-                // Get the castleID.
-                uint64_t CastleID{ 0 };
-                std::sscanf(Item.c_str(), "Castle_%lld", &CastleID);
+                // Get the castle ID safely.
+                uint64_t CastleID{0};
 
-                // Invalid filename or already loaded.
-                if (CastleID == 0) continue;
-                auto &Entry = Castles[CastleID];
-                if (Entry.size() > 0) continue;
+                if (Item.rfind("Castle_", 0) != 0)
+                    continue;
 
-                // Parse the on-disk file.
                 try
                 {
-                    Entry = MQEL_json::parse(Package::Read(Item).c_str());
+                    CastleID = std::stoull(Item.substr(7));
+                }
+                catch (...)
+                {
+                    Debugprint(va(
+                        "PvPCastle: invalid castle filename \"%s\"",
+                        Item.c_str()));
+                    continue;
+                }
+
+                // Invalid filename or already loaded.
+                if (CastleID == 0)
+                    continue;
+
+                auto &Entry = Castles[CastleID];
+
+                if (Entry.size() > 0)
+                    continue;
+
+                Infoprint(va(
+                    "PvPCastle: loading %s for AccountId=%llu",
+                    Item.c_str(),
+                    (unsigned long long)CastleID));
+
+                try
+                {
+                    std::string Data = Package::Read(Item);
+
+                    Infoprint(va(
+                        "PvPCastle: read %zu bytes from %s",
+                        Data.size(),
+                        Item.c_str()));
+
+                    Entry = MQEL_json::parse(Data);
+
+                    Infoprint(va(
+                        "PvPCastle: loaded %s (AccountId=%llu, Rooms=%zu)",
+                        Item.c_str(),
+                        (unsigned long long)CastleID,
+                        Entry["Rooms"].is_array() ? Entry["Rooms"].size() : 0));
                 }
                 catch (std::exception &e)
                 {
-                    Debugprint(va("%s (\"%s\"): %s", __FUNCTION__, Item.c_str(), e.what()));
+                    Debugprint(va(
+                        "%s (\"%s\"): %s",
+                        __FUNCTION__,
+                        Item.c_str(),
+                        e.what()));
+
+                    // Do not leave a partially-created entry behind.
+                    Castles.erase(CastleID);
                 }
             }
         }
@@ -46,15 +88,27 @@ namespace Backend
         // Get a players castle.
         MQEL_json Getcastle(uint64_t AccountID)
         {
-            // Start checking for updated castles.
             static bool Initialized = false;
-            if(!Initialized) Createrecurringtask(Loadcastles, 5000);
-            Initialized = true;
+
+            if (!Initialized)
+            {
+                Loadcastles();
+                Createrecurringtask(Loadcastles, 5000);
+                Initialized = true;
+            }
 
             return Castles[AccountID];
         }
 
         // Initialize the castles on startup.
-        namespace { struct Startup { Startup() { Loadcastles(); }; }; static Startup Loader{}; }
+        namespace
+        {
+            struct Startup
+            {
+                Startup() {};
+            };
+
+            static Startup Loader{};
+        }
     }
 }

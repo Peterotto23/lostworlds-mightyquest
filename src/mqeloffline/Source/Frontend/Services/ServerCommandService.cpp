@@ -282,15 +282,27 @@ void Handleinbox(Request_t Request)
     }
 
     Infoprint(va(
-        "Acquired item %s -> inventory slot %i.",
+        "INBOX COLLECT REQUEST: ObjectId=%s DestinationSlot=%i",
         Item.c_str(),
         DestinationSlot));
 
-    if (!Backend::Inventory::Collect(Item, DestinationSlot))
+    bool Collected =
+        Backend::Inventory::Collect(
+            Item,
+            DestinationSlot);
+
+    Infoprint(va(
+        "INBOX COLLECT RESULT: ObjectId=%s Collected=%s",
+        Item.c_str(),
+        Collected ? "true" : "false"));
+
+    if (!Collected)
     {
         Infoprint(va(
-            "Inventory collect failed for item %s.",
+            "INBOX COLLECT FAILED: item %s was not present in backend inbox.",
             Item.c_str()));
+
+        return;
     }
 }
 
@@ -330,6 +342,11 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         auto Type = Item.Get("$type", "Invalid");
         Type = Type.substr(0, Type.find_first_of(','));
         Type = Type.substr(Type.find_last_of('.') + 1);
+
+        Infoprint(va(
+            "ServerCommandService: received command \"%s\": %s",
+            Type.c_str(),
+            Item.toString().c_str()));
 
         // Trigger the callback.
         switch (Hash::FNV1a_32(Type.c_str()))

@@ -47,14 +47,17 @@ namespace Backend
         MQEL_json Serialize(T Type);
     }
 
-    // Persistent player inventory.
-    namespace Inventory
+        // Persistent player inventory.
+        namespace Inventory
     {
         // Load persistent inventory state.
         void Load();
 
         // Add an item to the persistent inbox.
         void Addinbox(MQEL_json Item);
+
+        // Add an attack reward directly to persistent inventory.
+        void Addreward(MQEL_json Item);
 
         // Move an inbox item into the player's inventory.
         bool Collect(std::string ObjectID, int Slot);
@@ -78,8 +81,8 @@ namespace Backend
         MQEL_json Serializeinbox();
     }
 
-    // Hero status and management.
-    namespace Hero
+        // Hero status and management.
+        namespace Hero
     {
         // Fetch general properties.
         template <typename C = int>
