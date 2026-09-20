@@ -18,9 +18,12 @@ Prebuilt binaries are in `bin/`; no build tools are required.
 
 ## Setup (single machine)
 
-1. Redirect the game's hostname to the server:
+1. Creating the build.
    ```powershell
-   .\scripts\host-setup.ps1
+   cd Your path to files
+   Get-Process mqelserver -ErrorAction SilentlyContinue | Stop-Process -Force
+   $env:Path = "$env:USERPROFILE\vcpkg\downloads\tools\cmake-4.4.3-windows\cmake-4.4.3-windows-x86_64\bin;$env:Path"
+   powershell -ExecutionPolicy Bypass -File .\build.ps1
    ```
 2. Start the server and leave it running:
    ```powershell
@@ -29,6 +32,7 @@ Prebuilt binaries are in `bin/`; no build tools are required.
 3. Launch the game:
    ```powershell
    Must be in the project folder to launch the game
+   cd Your path
    powershell -ExecutionPolicy Bypass -File .\scripts\play.ps1
    ```
 
