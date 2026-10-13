@@ -49,7 +49,7 @@ Run `bin\mqelserver.exe` on the host and allow inbound TCP 443 (port-forward for
 
 ## What works
 
-Client boot, Steam DRM, TLS, and 14 `.hqs` endpoints: account info, hero creation, castle and attack selection, start/end attack, rate castle, resurrect, seasonal competition, and the command/telemetry sink. Enough to load into the game.
+Client boot, Steam DRM, TLS, and 14 `.hqs` endpoints: account info, hero creation, castle and attack selection, start/end attack, rate castle, resurrect, seasonal competition, and the command/telemetry sink. Game now has three working dungeons Beware, Tybalt, and Enter the Archer. With currently basic inventory persistence and still need to manually enter every item in for every class. 
 
 New patch adds Beware Castle and level persistence still trying to get inventory persistence that will require heavy file crawling to get all item IDs. 
 
