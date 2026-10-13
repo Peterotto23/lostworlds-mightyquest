@@ -28,7 +28,11 @@ void Handletracking(Request_t Request)
         auto MachineID = Trackinginfo.Get("MachineId", "");
         auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
-        Infoprint(va("Telemetry: Client started with game-version %s and HWID %s", Version.c_str(), MachineID.c_str()));
+        Infoprint(va(
+            "Telemetry: Client started with game-version %s and HWID %s",
+            Version.c_str(),
+            MachineID.c_str()));
+
         break;
     }
 
@@ -43,7 +47,10 @@ void Handletracking(Request_t Request)
         auto StateID = Trackinginfo.Get("GameStateId", 0);
         auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
-        Infoprint(va("Telemetry: Gamestate %i updated", StateID));
+        Infoprint(va(
+            "Telemetry: Gamestate %i updated",
+            StateID));
+
         break;
     }
 
@@ -54,6 +61,7 @@ void Handletracking(Request_t Request)
         auto TagID = Trackinginfo.Get("TrackingTagId", 0);
 
         Infoprint("Telemetry: Epoch changed");
+
         break;
     }
 
@@ -61,16 +69,23 @@ void Handletracking(Request_t Request)
     case Hash::FNV1a_32("Invalid"):
         Infoprint("Could not parse telemetry.");
         break;
+
     default:
-        Infoprint(va("No handler for tracking-tag \"%s\".", Type.c_str()));
+        Infoprint(va(
+            "No handler for tracking-tag \"%s\".",
+            Type.c_str()));
+
         break;
     }
 }
+
 void Handleidle(Request_t Request)
 {
     auto Idletime = Request.Get("IdleTime", 0);
 
-    Infoprint(va("Telemetry: Client was idle for %i seconds.", Idletime));
+    Infoprint(va(
+        "Telemetry: Client was idle for %i seconds.",
+        Idletime));
 }
 
 // Questing.
@@ -79,19 +94,25 @@ void Handleassignmentupdate(Request_t Request)
     auto AssignmentID = Request.Get("AssignmentId", 0);
     auto ActionID = Request.Get("ActionIndex", 0);
 
-    Backend::Quest::Update(AssignmentID, ActionID);
+    Backend::Quest::Update(
+        AssignmentID,
+        ActionID);
 }
+
 void Handleassignmentaccepted(Request_t Request)
 {
     auto AssignmentID = Request.Get("AssignmentId", 0);
 
-    Backend::Quest::Start(AssignmentID);
+    Backend::Quest::Start(
+        AssignmentID);
 }
+
 void Handleassignmentcomplete(Request_t Request)
 {
     auto AssignmentID = Request.Get("AssignmentId", 0);
 
-    Backend::Quest::Complete(AssignmentID);
+    Backend::Quest::Complete(
+        AssignmentID);
 }
 
 // Marketplace.
@@ -100,12 +121,22 @@ void Handlecastlebuy(Request_t Request)
     Printfunction();
 
     // Set the max capacity for gold and life.
-    Backend::Wallet::Updateamount(eCurrencytype::IGC, 2000);
-    Backend::Wallet::Updateamount(eCurrencytype::Lifeforce, 2000);
+    Backend::Wallet::Updateamount(
+        eCurrencytype::IGC,
+        2000);
+
+    Backend::Wallet::Updateamount(
+        eCurrencytype::Lifeforce,
+        2000);
 
     /* TODO(Convery): Implement these notifications rather than hardcoding. */
-    Backend::Notification::Enqueuelocal(MQEL_json::parse(R"({"$type":"HyperQuest.GameServer.Contracts.CastleBoughtNotification, HyperQuest.GameServer.Contracts","IsStartupCastle":true,"BuildInfo":{"Draft":{"AccountId":3142975,"LayoutId":1,"CreationDate":"2016-10-23T07:20:03Z","ModificationDate":"2016-10-24T00:00:50Z","Rooms":[{"X":4,"Y":3,"Id":1,"SpecContainerId":21},{"Buildings":[{"Rank":1,"RoomZoneId":12,"X":3,"Y":3,"Orientation":2,"Id":1,"SpecContainerId":1},{"Rank":1,"RoomZoneId":11,"Id":2,"SpecContainerId":3},{"Rank":1,"RoomZoneId":13,"Id":3,"SpecContainerId":4},{"RoomZoneId":7,"X":3,"Orientation":3,"Id":4,"SpecContainerId":13},{"RoomZoneId":4,"X":3,"Orientation":3,"Id":6,"SpecContainerId":10},{"RoomZoneId":6,"X":3,"Y":3,"Orientation":2,"Id":7,"SpecContainerId":8},{"RoomZoneId":3,"Y":3,"Orientation":1,"Id":8,"SpecContainerId":9}],"X":3,"Y":3,"Id":3,"SpecContainerId":25}],"ThemeId":21},"Level":1,"InventoryThemes":[ 2,21],"RoomNextIndex":4,"CreatureNextIndex":40,"TrapNextIndex":5,"DecorationNextIndex":32,"TriggerNextIndex":1,"BuildingNextIndex":9,"CastleStats":{"TotalConstructionPoints":56,"MaxConstructionPoints":56,"WinRatio":0.5,"WinRatioDifficulty":2},"CastleHeartRank":1},"NotificationType":86})"));
-    Backend::Notification::Enqueuelocal(MQEL_json::parse(R"({"$type":"HyperQuest.GameServer.Contracts.SkusModifiersUpdatedNotification, HyperQuest.GameServer.Contracts","ShopSkuModifiers":[{"SkuCode":"15221","LimitedQuantityMax":15,"LimitedQuantityNextUnlockCastleLevelRequirement":3,"LimitedQuantityNextUnlockQuantity":10},{"SkuCode":"13911","LimitedQuantityMax":1,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15266","LimitedQuantityMax":2},{"SkuCode":"15226","LimitedQuantityMax":20,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15224","LimitedQuantityMax":2,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15502","LimitedQuantityMax":4},{"SkuCode":"15503","LimitedQuantityMax":4},{"SkuCode":"15504","LimitedQuantityMax":3},{"SkuCode":"15513","LimitedQuantityMax":3},{"SkuCode":"15262","LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":4},{"SkuCode":"15229","LimitedQuantityNextUnlockCastleLevelRequirement":3,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15220","LimitedQuantityNextUnlockCastleLevelRequirement":4,"LimitedQuantityNextUnlockQuantity":20},{"SkuCode":"15264","LimitedQuantityNextUnlockCastleLevelRequirement":4,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15230","LimitedQuantityNextUnlockCastleLevelRequirement":5,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15263","LimitedQuantityNextUnlockCastleLevelRequirement":6,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15268","LimitedQuantityNextUnlockCastleLevelRequirement":6,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15225","LimitedQuantityNextUnlockCastleLevelRequirement":7,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15467","LimitedQuantityNextUnlockCastleLevelRequirement":8,"LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15234","LimitedQuantityNextUnlockCastleLevelRequirement":9,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16070","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16071","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16072","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16073","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16074","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16075","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16076","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16077","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16078","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16079","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16080","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16049","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15805","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15810","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15811","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15806","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15835","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15807","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15812","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15808","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15804","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15809","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15813","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15825","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15834","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15872","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15974","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15957","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15814","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15892","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16067","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15815","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15816","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16068","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15827","LimitedQuantityNextUnlockQuantity":6},{"SkuCode":"15828","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15817","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15856","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16006","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16055","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16058","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15818","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15819","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15855","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15890","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16059","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16060","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15820","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15821","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15874","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15981","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16064","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16057","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16061","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15822","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16010","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15961","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15853","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15984","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16062","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16063","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15823","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15830","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15977","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16046","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16065","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16066","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15854","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16032","LimitedQuantityNextUnlockQuantity":1}],"NotificationType":90})"));
+    Backend::Notification::Enqueuelocal(
+        MQEL_json::parse(
+            R"({"$type":"HyperQuest.GameServer.Contracts.CastleBoughtNotification, HyperQuest.GameServer.Contracts","IsStartupCastle":true,"BuildInfo":{"Draft":{"AccountId":3142975,"LayoutId":1,"CreationDate":"2016-10-23T07:20:03Z","ModificationDate":"2016-10-24T00:20:50Z","Rooms":[{"X":4,"Y":3,"Id":1,"SpecContainerId":21},{"Buildings":[{"Rank":1,"RoomZoneId":12,"X":3,"Y":3,"Orientation":2,"Id":1,"SpecContainerId":1},{"Rank":1,"RoomZoneId":11,"Id":2,"SpecContainerId":3},{"Rank":1,"RoomZoneId":13,"Id":3,"SpecContainerId":4},{"RoomZoneId":7,"X":3,"Orientation":3,"Id":4,"SpecContainerId":13},{"RoomZoneId":4,"X":3,"Orientation":3,"Id":6,"SpecContainerId":10},{"RoomZoneId":6,"X":3,"Y":3,"Orientation":2,"Id":7,"SpecContainerId":8},{"RoomZoneId":3,"Y":3,"Orientation":1,"Id":8,"SpecContainerId":9}],"X":3,"Y":3,"Id":3,"SpecContainerId":25}],"ThemeId":21},"Level":1,"InventoryThemes":[2,21],"RoomNextIndex":4,"CreatureNextIndex":40,"TrapNextIndex":5,"DecorationNextIndex":32,"TriggerNextIndex":1,"BuildingNextIndex":9,"CastleStats":{"TotalConstructionPoints":56,"MaxConstructionPoints":56,"WinRatio":0.5,"WinRatioDifficulty":2},"CastleHeartRank":1},"NotificationType":86})"));
+
+    Backend::Notification::Enqueuelocal(
+        MQEL_json::parse(
+            R"({"$type":"HyperQuest.GameServer.Contracts.SkusModifiersUpdatedNotification, HyperQuest.GameServer.Contracts","ShopSkuModifiers":[{"SkuCode":"15221","LimitedQuantityMax":15,"LimitedQuantityNextUnlockCastleLevelRequirement":3,"LimitedQuantityNextUnlockQuantity":10},{"SkuCode":"13911","LimitedQuantityMax":1,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15266","LimitedQuantityMax":2},{"SkuCode":"15226","LimitedQuantityMax":20,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15224","LimitedQuantityMax":2,"LimitedQuantityNextUnlockCastleLevelRequirement":2,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15502","LimitedQuantityMax":4},{"SkuCode":"15503","LimitedQuantityMax":4},{"SkuCode":"15504","LimitedQuantityMax":3},{"SkuCode":"15513","LimitedQuantityMax":3},{"SkuCode":"15262","LimitedQuantityNextUnlockQuantity":4},{"SkuCode":"15229","LimitedQuantityNextUnlockCastleLevelRequirement":3,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15220","LimitedQuantityNextUnlockCastleLevelRequirement":4,"LimitedQuantityNextUnlockQuantity":20},{"SkuCode":"15264","LimitedQuantityNextUnlockCastleLevelRequirement":4,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15230","LimitedQuantityNextUnlockCastleLevelRequirement":5,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15263","LimitedQuantityNextUnlockCastleLevelRequirement":6,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15268","LimitedQuantityNextUnlockCastleLevelRequirement":6,"LimitedQuantityNextUnlockQuantity":5},{"SkuCode":"15225","LimitedQuantityNextUnlockCastleLevelRequirement":7,"LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15467","LimitedQuantityNextUnlockCastleLevelRequirement":8,"LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15234","LimitedQuantityNextUnlockCastleLevelRequirement":9,"LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16070","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16071","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16072","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16073","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16074","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16075","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16076","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16077","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16078","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16079","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16080","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16049","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15805","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15810","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15811","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15806","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15835","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15807","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15812","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15808","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15804","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15809","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15813","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15825","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15834","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15872","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15974","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15957","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15814","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15892","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16067","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15815","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15816","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16068","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15827","LimitedQuantityNextUnlockQuantity":6},{"SkuCode":"15828","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15817","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15856","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16006","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16055","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16058","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15818","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15819","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15855","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15890","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16059","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16060","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15820","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15821","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15874","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15981","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16064","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16057","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16061","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15822","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16010","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15961","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15853","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15984","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16062","LimitedQuantityNextUnlockQuantity":2},{"skuCode":"16063","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15823","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"15830","LimitedQuantityNextUnlockQuantity":3},{"SkuCode":"15977","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16046","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16065","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"16066","LimitedQuantityNextUnlockQuantity":2},{"SkuCode":"15854","LimitedQuantityNextUnlockQuantity":1},{"SkuCode":"16032","LimitedQuantityNextUnlockQuantity":1}],"NotificationType":90})"));
 }
 
 void Handleitembuy(Request_t Request)
@@ -114,102 +145,249 @@ void Handleitembuy(Request_t Request)
         "BuyHeroItemCommand received: %s",
         Request.toString().c_str()));
 
-    auto Price = Request.Get("ClientPrice", Message_t());
-    auto Currencytype = Price.Get("CurrencyType", 0);
-    auto Currencyamount = Price.Get("Amount", 0);
-    auto SKUCode = Request.Get("SkuCode", "");
-    auto Slot = Request.Get("SlotIndex", 0);
+    auto Price = Request.Get(
+        "ClientPrice",
+        Message_t());
 
-    // Subtract the purchase price.
+    auto Currencytype = Price.Get(
+        "CurrencyType",
+        0);
+
+    auto Currencyamount = Price.Get(
+        "Amount",
+        0);
+
+    auto SKUCode = Request.Get(
+        "SkuCode",
+        "");
+
+    auto Slot = Request.Get(
+        "SlotIndex",
+        0);
+
+    /*
+        These are the hero-equipment SKUs observed from the real client.
+
+        SKU     TemplateId  ArchetypeId  ItemLevel
+        11353   22101       5            1
+        13130   64131       7            3
+        13140   64141       7            3
+        13150   64151       7            3
+        13160   64161       7            3
+        13170   64171       7            3
+        13100   64101       6            3   Charmed Ox Crossbow
+        13400   64101       6            3   Charmed Ox Crossbow
+    */
+
+    uint32_t TemplateId = 0;
+    uint32_t ArchetypeId = 0;
+    uint32_t ItemLevel = 0;
+    bool IsCharmedOx = false;
+
+    if (SKUCode == "11353")
+    {
+        TemplateId = 22101;
+        ArchetypeId = 5;
+        ItemLevel = 1;
+    }
+    else if (SKUCode == "13130")
+    {
+        TemplateId = 64131;
+        ArchetypeId = 7;
+        ItemLevel = 3;
+    }
+    else if (SKUCode == "13140")
+    {
+        TemplateId = 64141;
+        ArchetypeId = 7;
+        ItemLevel = 3;
+    }
+    else if (SKUCode == "13150")
+    {
+        TemplateId = 64151;
+        ArchetypeId = 7;
+        ItemLevel = 3;
+    }
+    else if (SKUCode == "13160")
+    {
+        TemplateId = 64161;
+        ArchetypeId = 7;
+        ItemLevel = 3;
+    }
+    else if (SKUCode == "13170")
+    {
+        TemplateId = 64171;
+        ArchetypeId = 7;
+        ItemLevel = 3;
+    }
+    else if (SKUCode == "13100" || SKUCode == "13400")
+    {
+        /*
+            Charmed Ox Crossbow.
+
+            Real client shop data:
+                13100 -> 64101 for 245 Gold
+                13400 -> 64101 for 40 Premium Cash
+        */
+        TemplateId = 64101;
+        ArchetypeId = 6;
+        ItemLevel = 3;
+        IsCharmedOx = true;
+    }
+    else
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: unsupported hero-item SKU %s. "
+            "No inventory item created and no currency deducted.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    // Subtract the purchase price only after we know the SKU is supported.
     Backend::Wallet::Updateamount(
         (eCurrencytype)Currencytype,
         Currencyamount * -1);
 
+    MQEL_json Item =
+        MQEL_json::object();
+
+    Item["$type"] =
+        "HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts";
+
+    Item["Type"] =
+        "HeroEquipmentItem";
+
+    Item["ItemLevel"] =
+        ItemLevel;
+
+    Item["ArchetypeId"] =
+        ArchetypeId;
+
     /*
-        SKU 11353 is the Archer shoulder item observed in the
-        real client/account data:
-
-            TemplateId            133
-            ArchetypeId            8
-            ItemLevel              1
-            PrimaryStatsModifiers  [0.4, 0.4, 0.4]
-            DyeTemplateId          0
+        Keep the existing deterministic modifier values until we have
+        captured the actual rolled PrimaryStatsModifiers for a real
+        Charmed Ox instance from the client.
     */
-    if (SKUCode == "11353")
+    Item["PrimaryStatsModifiers"] =
+        {0.4, 0.4, 0.4};
+
+    Item["IsSellable"] =
+        true;
+
+    Item["TemplateId"] =
+        TemplateId;
+
+    Item["DyeTemplateId"] =
+        0;
+
+    /*
+        The Charmed Ox is a named item with its two known static effects.
+    */
+    if (IsCharmedOx)
     {
-        MQEL_json Item = MQEL_json::object();
+        Item["Effects"] =
+            MQEL_json::array(
+                {
+                    MQEL_json{
+                        {"Id", 30}
+                    },
+                    MQEL_json{
+                        {"Id", 38}
+                    }
+                });
 
-        Item["$type"] =
-            "HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts";
+        Infoprint(
+            va(
+                "Charmed Ox payload: %s",
+                Item.dump().c_str()));
+    }
 
-        Item["Type"] = "HeroEquipmentItem";
-        Item["ItemLevel"] = 1;
-
-        /*
-            SKU 11353 is immediately followed by the client with:
-
-                HeroEquipmentEquipCommand
-                DestinationSlot = 8
-
-            In our local eItemslot enum, slot 8 is Mainhand.
-            Mainhand equipment uses ArchetypeId 2.
-
-            We therefore keep the purchased object as a weapon-type
-            item instead of generating the shoulder-type ArchetypeId 8.
-        */
-        Item["ArchetypeId"] = 2;
-        Item["PrimaryStatsModifiers"] = {0.4, 0.4, 0.4};
-        Item["IsSellable"] = true;
-
-        /*
-            We do NOT change TemplateId yet.
-
-            133 was previously hardcoded here, but that value came
-            from our local test data and is known to be the Archer
-            shoulder item. We need to identify the real weapon
-            TemplateId separately.
-        */
-        Item["TemplateId"] = 133;
-        Item["DyeTemplateId"] = 0;
-
-        Item["ObjectId"] = va(
+    Item["ObjectId"] =
+        va(
             "purchased-%u",
             (unsigned)std::chrono::high_resolution_clock::now()
                 .time_since_epoch()
                 .count());
 
-        Backend::Inventory::Addpurchased(Item, Slot);
+    /*
+        Addpurchased() stores the object with the exact inventory slot
+        the client supplied, then persists Inventory.json into the
+        MQELOffline.Localnet package.
+    */
+    Backend::Inventory::Addpurchased(
+        Item,
+        Slot);
 
-        Infoprint(va(
-            "Purchased SKU %s -> TemplateId %u ArchetypeId %u at inventory slot %i.",
-            SKUCode.c_str(),
-            (unsigned)Item["TemplateId"].get<uint32_t>(),
-            (unsigned)Item["ArchetypeId"].get<uint32_t>(),
-            Slot));
-    }
+    Infoprint(va(
+        "Purchased SKU %s -> TemplateId %u ArchetypeId %u ItemLevel %u at inventory slot %i.",
+        SKUCode.c_str(),
+        (unsigned)TemplateId,
+        (unsigned)ArchetypeId,
+        (unsigned)ItemLevel,
+        Slot));
 }
+
 void Handleconsumable(Request_t Request)
 {
-    auto Materials = Request.Get("ClientCraftingMaterials", Message_t());
-    auto Consumed = Request.Get("ConsumedHeroInventory", Message_t());
-    auto Discounted = Request.Get("DiscountApplied", false);
-    auto Slots = Request.Get("SlotIndexes", Message_t());
-    auto Price = Request.Get("ClientPrice", Message_t());
-    auto Currencytype = Price.Get("CurrencyType", 0);
-    auto Currencyamount = Price.Get("Amount", 0);
-    auto SKUCode = Request.Get("SkuCode", "");
+    auto Materials = Request.Get(
+        "ClientCraftingMaterials",
+        Message_t());
 
-    // Subtract the price from our wallet..
-    Backend::Wallet::Updateamount((eCurrencytype)Currencytype, Currencyamount * -1);
-    Infoprint(va("Bought consumable %s for %i %s.", SKUCode.c_str(), Currencyamount, [&Currencytype]()
-                 {
-        switch ((eCurrencytype)Currencytype)
+    auto Consumed = Request.Get(
+        "ConsumedHeroInventory",
+        Message_t());
+
+    auto Discounted = Request.Get(
+        "DiscountApplied",
+        false);
+
+    auto Slots = Request.Get(
+        "SlotIndexes",
+        Message_t());
+
+    auto Price = Request.Get(
+        "ClientPrice",
+        Message_t());
+
+    auto Currencytype = Price.Get(
+        "CurrencyType",
+        0);
+
+    auto Currencyamount = Price.Get(
+        "Amount",
+        0);
+
+    auto SKUCode = Request.Get(
+        "SkuCode",
+        "");
+
+    // Subtract the price from our wallet.
+    Backend::Wallet::Updateamount(
+        (eCurrencytype)Currencytype,
+        Currencyamount * -1);
+
+    Infoprint(va(
+        "Bought consumable %s for %i %s.",
+        SKUCode.c_str(),
+        Currencyamount,
+        [&Currencytype]()
         {
-            case eCurrencytype::PremiumCash:    return "Premium-cash";
-            case eCurrencytype::Lifeforce:      return "Lifeforce";
-            case eCurrencytype::IGC:            return "Gold";
-            default:                            return "???";
-        } }()));
+            switch ((eCurrencytype)Currencytype)
+            {
+            case eCurrencytype::PremiumCash:
+                return "Premium-cash";
+
+            case eCurrencytype::Lifeforce:
+                return "Lifeforce";
+
+            case eCurrencytype::IGC:
+                return "Gold";
+
+            default:
+                return "???";
+            }
+        }()));
 
     /*
         TODO(Convery):
@@ -220,9 +398,17 @@ void Handleconsumable(Request_t Request)
 // Hero modification.
 void Handleequipment(Request_t Request)
 {
-    auto DSTSlot = Request.Get("DestinationSlot", 0);
-    auto SRCSlot = Request.Get("SourceSlotId", 0);
-    auto HeroID = Request.Get("HeroId", 0);
+    auto DSTSlot = Request.Get(
+        "DestinationSlot",
+        0);
+
+    auto SRCSlot = Request.Get(
+        "SourceSlotId",
+        0);
+
+    auto HeroID = Request.Get(
+        "HeroId",
+        0);
 
     const char *HeroName = [&HeroID]() -> const char *
     {
@@ -263,10 +449,16 @@ void Handleequipment(Request_t Request)
             DSTSlot));
     }
 }
+
 void Handleinbox(Request_t Request)
 {
-    auto Slots = Request.Get("SlotIndexes", Message_t());
-    auto Item = Request.Get("ObjectId", "");
+    auto Slots = Request.Get(
+        "SlotIndexes",
+        Message_t());
+
+    auto Item = Request.Get(
+        "ObjectId",
+        "");
 
     int DestinationSlot = -1;
 
@@ -274,11 +466,13 @@ void Handleinbox(Request_t Request)
 
     if (SlotJSON.is_array() && !SlotJSON.empty())
     {
-        DestinationSlot = SlotJSON[0].get<int>();
+        DestinationSlot =
+            SlotJSON[0].get<int>();
     }
     else if (SlotJSON.is_number_integer())
     {
-        DestinationSlot = SlotJSON.get<int>();
+        DestinationSlot =
+            SlotJSON.get<int>();
     }
 
     Infoprint(va(
@@ -308,15 +502,22 @@ void Handleinbox(Request_t Request)
 
 void Handleinventoryswap(Request_t Request)
 {
-    auto DSTSlot = Request.Get("DestinationSlotId", 0);
-    auto SRCSlot = Request.Get("SourceSlotId", 0);
+    auto DSTSlot = Request.Get(
+        "DestinationSlotId",
+        0);
+
+    auto SRCSlot = Request.Get(
+        "SourceSlotId",
+        0);
 
     Infoprint(va(
         "Inventory swap: %i -> %i.",
         SRCSlot,
         DSTSlot));
 
-    if (!Backend::Inventory::Swap(SRCSlot, DSTSlot))
+    if (!Backend::Inventory::Swap(
+            SRCSlot,
+            DSTSlot))
     {
         Infoprint(va(
             "Inventory swap failed: %i -> %i.",
@@ -327,21 +528,35 @@ void Handleinventoryswap(Request_t Request)
 
 void Handlelogout(Request_t Request)
 {
-    Infoprint("Client logout command received.");
+    Infoprint(
+        "Client logout command received.");
 }
 
 // Endpoints.
-void SendCommand(Gameserver *Server, std::string Request, std::string Body)
+void SendCommand(
+    Gameserver *Server,
+    std::string Request,
+    std::string Body)
 {
-    Request_t Parsed{Body};
+    Request_t Parsed{
+        Body};
 
     // Deserialize the commands.
-    for (auto &Item : Parsed.Get("commands", std::vector<Message_t>{}))
+    for (auto &Item : Parsed.Get(
+             "commands",
+             std::vector<Message_t>{}))
     {
         // Get the command-type.
-        auto Type = Item.Get("$type", "Invalid");
-        Type = Type.substr(0, Type.find_first_of(','));
-        Type = Type.substr(Type.find_last_of('.') + 1);
+        auto Type = Item.Get(
+            "$type",
+            "Invalid");
+
+        Type = Type.substr(
+            0,
+            Type.find_first_of(','));
+
+        Type = Type.substr(
+            Type.find_last_of('.') + 1);
 
         Infoprint(va(
             "ServerCommandService: received command \"%s\": %s",
@@ -355,6 +570,7 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         case Hash::FNV1a_32("TrackingCommand"):
             Handletracking(Item);
             break;
+
         case Hash::FNV1a_32("ClientIdleCommand"):
             Handleidle(Item);
             break;
@@ -363,9 +579,11 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         case Hash::FNV1a_32("StartAssignmentCommand"):
             Handleassignmentaccepted(Item);
             break;
+
         case Hash::FNV1a_32("CompleteAssignmentCommand"):
             Handleassignmentcomplete(Item);
             break;
+
         case Hash::FNV1a_32("ExecuteAssignmentActionCommand"):
             Handleassignmentupdate(Item);
             break;
@@ -374,9 +592,11 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         case Hash::FNV1a_32("BuyCommand"):
             Handlecastlebuy(Item);
             break;
+
         case Hash::FNV1a_32("BuyHeroItemCommand"):
             Handleitembuy(Item);
             break;
+
         case Hash::FNV1a_32("BuyConsumableCommand"):
             Handleconsumable(Item);
             break;
@@ -385,27 +605,38 @@ void SendCommand(Gameserver *Server, std::string Request, std::string Body)
         case Hash::FNV1a_32("HeroEquipmentEquipCommand"):
             Handleequipment(Item);
             break;
+
         case Hash::FNV1a_32("InboxCollectToHeroInventoryCommand"):
             Handleinbox(Item);
             break;
+
         case Hash::FNV1a_32("InventorySwapItemCommand"):
             Handleinventoryswap(Item);
             break;
+
         case Hash::FNV1a_32("LogoutCommand"):
             Handlelogout(Item);
             break;
 
         // Errors.
         case Hash::FNV1a_32("Invalid"):
-            Infoprint("Could not parse command.");
+            Infoprint(
+                "Could not parse command.");
+
             break;
+
         default:
-            Infoprint(va("No handler for command \"%s\".", Type.c_str()));
+            Infoprint(va(
+                "No handler for command \"%s\".",
+                Type.c_str()));
+
             break;
         }
     }
 
-    Sendreply(Server, "{}");
+    Sendreply(
+        Server,
+        "{}");
 }
 
 // Add the services to the gameserver on startup.
@@ -415,8 +646,11 @@ namespace
     {
         Startup()
         {
-            Mapservice("/ServerCommandService.hqs/SendCommands", SendCommand);
+            Mapservice(
+                "/ServerCommandService.hqs/SendCommands",
+                SendCommand);
         };
     };
+
     static Startup Loader{};
 }

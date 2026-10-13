@@ -8,15 +8,44 @@
 
 #pragma once
 #include "../../Stdinclude.hpp"
+#include "../../Backend/PvECastleDatabase.hpp"
 
 uint64_t CurrentattackID;
-constexpr uint64_t TutorialID1 = 12345;
-constexpr uint64_t TutorialID2 = 54321;
+uint64_t CurrentattackCastleID = 0;
+eCastletype CurrentattackCastleType = eCastletype::Ubisoft;
+bool CurrentattackDreadKnightQuest = false;
 
-// Helper.
-uint32_t GetCastlelevel()
+constexpr uint64_t TutorialCastleID = 2;
+constexpr uint64_t BewarewichCastleID = 3;
+constexpr uint64_t DreadKnightCastleID = 21;
+
+constexpr uint64_t TutorialAttackID1 = 12345;
+constexpr uint64_t TutorialAttackID2 = 54321;
+
+uint32_t GetCastlelevel(
+    uint64_t AccountID)
 {
-    return 1;
+    const auto *Castle =
+        Backend::PvECastle::Find(
+            AccountID);
+
+    if (Castle != nullptr)
+    {
+        Infoprint(
+            va(
+                "StartAttack: resolved PVE castle AccountId=%llu Level=%u.",
+                (unsigned long long)AccountID,
+                Castle->Level));
+
+        return Castle->Level;
+    }
+
+    Infoprint(
+        va(
+            "StartAttack: unable to resolve PVE castle AccountId=%llu.",
+            (unsigned long long)AccountID));
+
+    return 0;
 }
 
 MQEL_json GetCastle(uint64_t AccountID, eCastletype Type)
@@ -33,8 +62,11 @@ MQEL_json GetCastle(uint64_t AccountID, eCastletype Type)
             "HyperQuest.GameServer.Contracts.UserCastle, HyperQuest.GameServer.Contracts";
 
     // Check tutorial status.
-    if (AccountID <= 3)
+    if (AccountID == TutorialCastleID ||
+        AccountID == BewarewichCastleID)
+    {
         Result["IsTutorialCastle"] = true;
+    }
 
     std::string Castle =
         Backend::PvPCastle::Getcastle(AccountID).dump(4);
@@ -74,39 +106,16 @@ MQEL_json GetCreatureloot()
 
 void Fixclassloot(MQEL_json &Response)
 {
-    std::vector<std::pair<uint32_t, uint32_t>> Loot;
+    /*
+        Original MQEL drops were not strictly class locked.
 
-    switch (Backend::Hero::Getheroclass())
-    {
-    case (int)eHerotype::Knight:
-        Loot = {
-            {108, 2},
-            {109, 8},
-            {110, 8}
-        };
-        break;
+        The old offline patch replaced every reward with
+        class-specific templates, which caused Mage/Wizard runs
+        to receive unusable or missing equipment.
 
-    case (int)eHerotype::Archer:
-        Loot = {
-            {124, 2},
-            {125, 8},
-            {126, 8}
-        };
-        break;
-
-    case (int)eHerotype::Mage:
-        Loot = {
-            {128, 9},
-            {129, 8},
-            {130, 8}
-        };
-        break;
-
-    default:
-        return;
-    }
-
-    uint32_t LootIndex = 0;
+        Keep server generated loot intact.
+        Only repair missing TemplateId/ArchetypeId fields.
+    */
 
     if (Response["Notifications"].is_null())
         return;
@@ -129,29 +138,36 @@ void Fixclassloot(MQEL_json &Response)
 
         for (auto &InboxItem : Notification["InboxItems"])
         {
-            if (InboxItem["$type"].is_null())
-                continue;
-
-            const std::string ItemType =
-                InboxItem["$type"].get<std::string>();
-
-            if (ItemType.find("InboxHeroEquipmentItem") ==
-                std::string::npos)
-                continue;
-
-            if (LootIndex >= Loot.size())
-                break;
-
             if (InboxItem["HeroItem"].is_null())
                 continue;
 
-            InboxItem["HeroItem"]["TemplateId"] =
-                Loot[LootIndex].first;
+            auto &Item = InboxItem["HeroItem"];
 
-            InboxItem["HeroItem"]["ArchetypeId"] =
-                Loot[LootIndex].second;
+            if (Item["TemplateId"].is_null())
+            {
+                Item["TemplateId"] = 37;
+            }
 
-            ++LootIndex;
+            if (Item["ArchetypeId"].is_null())
+            {
+                Item["ArchetypeId"] = 9;
+            }
+
+            if (Item["ItemLevel"].is_null())
+            {
+                Item["ItemLevel"] = 1;
+            }
+
+            if (Item["IsSellable"].is_null())
+            {
+                Item["IsSellable"] = true;
+            }
+
+            Infoprint(
+                va(
+                    "Loot fix: keeping drop TemplateId=%u ArchetypeId=%u",
+                    Item["TemplateId"].get<uint32_t>(),
+                    Item["ArchetypeId"].get<uint32_t>()));
         }
     }
 }
@@ -180,46 +196,36 @@ void PersistAttackInbox(MQEL_json &Response)
         {
             for (auto &InboxItem : Notification["InboxItems"])
             {
-                if (InboxItem.find("ObjectId") == InboxItem.end() ||
-                    InboxItem["ObjectId"].is_null())
+                std::string ObjectID;
+
+                if (!InboxItem["ObjectId"].is_null())
+                {
+                    ObjectID =
+                        InboxItem["ObjectId"].get<std::string>();
+                }
+                else if (!Notification["ObjectId"].is_null())
+                {
+                    ObjectID =
+                        Notification["ObjectId"].get<std::string>();
+                    InboxItem["ObjectId"] = ObjectID;
+                }
+                else
+                {
+                    Infoprint(
+                        "PersistAttackInbox: item missing ObjectId.");
                     continue;
-
-                const std::string ObjectID =
-                    InboxItem["ObjectId"].get<std::string>();
+                }
 
                 Infoprint(
                     va(
-                        "PersistAttackInbox: storing reward %s in persistent inbox.",
+                        "PersistAttackInbox: storing reward %s",
                         ObjectID.c_str()));
-
-                Infoprint(
-                    va(
-                        "PersistAttackInbox: FOUND ITEM ObjectId=%s JSON=%s",
-                        ObjectID.c_str(),
-                        InboxItem.dump().c_str()));
 
                 Backend::Inventory::Addinbox(InboxItem);
             }
         }
-
-        if (Notification.find("ObjectId") != Notification.end() &&
-            !Notification["ObjectId"].is_null() &&
-            Notification.find("HeroItem") != Notification.end() &&
-            !Notification["HeroItem"].is_null())
-        {
-            const std::string ObjectID =
-                Notification["ObjectId"].get<std::string>();
-
-            Infoprint(
-                va(
-                    "PersistAttackInbox: storing direct reward %s in persistent inbox.",
-                    ObjectID.c_str()));
-
-            Backend::Inventory::Addinbox(Notification);
-        }
     }
 }
-
 MQEL_json GetTraploot()
 {
     return MQEL_json::parse(
@@ -305,15 +311,118 @@ void StartAttack(
             "StartAttack: completed quests = [%s]",
             QuestList.c_str()));
 
-    uint64_t CastleAccountId = 0;
+    uint64_t RequestedCastleAccountId = 0;
 
     if (!Parsed["castleAccountId"].is_null())
-        CastleAccountId =
+        RequestedCastleAccountId =
             Parsed["castleAccountId"].get<uint64_t>();
 
-    bool Tutorial =
-        (CastleAccountId == Backend::PvPCastle::TutorialID1 ||
-         CastleAccountId == Backend::PvPCastle::TutorialID2);
+    uint64_t CastleAccountId =
+        RequestedCastleAccountId;
+
+    /*
+        Assignment 120 / Knight of the Dread.
+
+        The original client request uses Castle 2 as the quest/tutorial
+        placeholder. The actual playable dungeon for this assignment is
+        Castle 21 ("The Dead Legion" / "Enter the Archer").
+    */
+    const bool DreadKnightQuestAttack =
+        Attacksource == eAttacksource::Quest &&
+        RequestedCastleAccountId == TutorialCastleID &&
+        Backend::Quest::IsStarted(120);
+
+    CurrentattackDreadKnightQuest =
+        DreadKnightQuestAttack;
+
+    if (DreadKnightQuestAttack)
+    {
+        CastleAccountId =
+            DreadKnightCastleID;
+
+        Infoprint(
+            "Knight of the Dread quest attack: routing Castle 2 request to Castle 21.");
+    }
+
+    /*
+        EndAttack needs the ACTUAL dungeon that was played.
+    */
+    CurrentattackCastleID =
+        CastleAccountId;
+
+    CurrentattackCastleType =
+        Castletype;
+
+    Infoprint(
+        va(
+            "StartAttack: stored attack castle AccountId=%llu CastleType=%u.",
+            (unsigned long long)
+                CurrentattackCastleID,
+            (unsigned)
+                CurrentattackCastleType));
+
+    /*
+        Quest 120 must retain the tutorial/progression response
+        contract even though its actual castle is Castle 21.
+    */
+    /*
+     Preserve the two existing special cases.
+
+     Ordinary PVE castles use a separate compatibility flag.
+     They must not use fixed tutorial attack IDs or fixed
+     tutorial reward responses.
+ */
+    const bool ActualTutorialCastle =
+        RequestedCastleAccountId == TutorialCastleID ||
+        RequestedCastleAccountId == BewarewichCastleID;
+
+    /*
+        Ordinary local PVE castles use the Bewarewich-compatible
+        StartAttack response, except for the Dreadknight quest castle.
+
+        Keep the real PVE CastleEntry so we can report its actual level.
+    */
+    const Backend::PvECastle::CastleEntry *PVECompatibilityEntry =
+        nullptr;
+
+    if (!DreadKnightQuestAttack &&
+        !ActualTutorialCastle)
+    {
+        PVECompatibilityEntry =
+            Backend::PvECastle::Find(
+                CastleAccountId);
+    }
+
+    const bool PVECompatibilityCastle =
+        PVECompatibilityEntry != nullptr;
+
+    const bool Tutorial =
+        ActualTutorialCastle ||
+        PVECompatibilityCastle ||
+        DreadKnightQuestAttack;
+
+    if (PVECompatibilityCastle)
+    {
+        Infoprint(
+            va(
+                "StartAttack: using Bewarewich-compatible PVE response for AccountId=%llu Level=%u.",
+                (unsigned long long)CastleAccountId,
+                PVECompatibilityEntry->Level));
+    }
+
+    Infoprint(
+        va(
+            "StartAttack: requested CastleAccountId=%llu resolved CastleAccountId=%llu Tutorial=%s DreadKnightQuest=%s.",
+            (unsigned long long)
+                RequestedCastleAccountId,
+            (unsigned long long)
+                CastleAccountId,
+            Tutorial
+                ? "true"
+                : "false",
+            DreadKnightQuestAttack
+                ? "true"
+                : "false"));
 
     Infoprint(
         va(
@@ -391,14 +500,34 @@ void StartAttack(
                 return "";
             }()));
 
-    if (!Tutorial)
-        CurrentattackID = time(NULL);
+    /*
+     Only the actual tutorial castles get the fixed tutorial
+     attack IDs.
 
-    if (Tutorial && Attacktype == eAttacktype::None)
-        CurrentattackID = TutorialID1;
+     Other progression dungeons get the tutorial/progression
+     response shape, but retain a normal unique attack ID so
+     EndAttack does not enter the hardcoded tutorial reward paths.
+ */
 
-    if (Tutorial && Attacktype == eAttacktype::Progression)
-        CurrentattackID = TutorialID2;
+    if (!DreadKnightQuestAttack &&
+        ActualTutorialCastle &&
+        Attacktype == eAttacktype::None)
+    {
+        CurrentattackID =
+            TutorialAttackID1;
+    }
+    else if (!DreadKnightQuestAttack &&
+             ActualTutorialCastle &&
+             Attacktype == eAttacktype::Progression)
+    {
+        CurrentattackID =
+            TutorialAttackID2;
+    }
+    else
+    {
+        CurrentattackID =
+            time(NULL);
+    }
 
     auto Response =
         MQEL_json::object();
@@ -406,35 +535,125 @@ void StartAttack(
     Response["Result"]["AttackId"] =
         va("%x", CurrentattackID);
 
-    if (Tutorial && Attacktype == eAttacktype::None)
-    {
-        Response["Result"]["Castle"] =
-            GetTutorialcastle(Attacktype);
-    }
-
-    if (Tutorial && Attacktype == eAttacktype::Progression)
+    if (DreadKnightQuestAttack)
     {
         Response["Result"]["Castle"] =
             GetCastle(
-                Parsed["castleAccountId"],
-                Castletype);
+                CastleAccountId,
+                eCastletype::Ubisoft);
     }
-
-    if (!Tutorial)
+    else if (PVECompatibilityCastle)
     {
         Response["Result"]["Castle"] =
             GetCastle(
-                Parsed["castleAccountId"],
+                CastleAccountId,
+                Castletype);
+
+        Response["Result"]["Castle"]["IsTutorialCastle"] =
+            true;
+    }
+    else if (Tutorial &&
+             Attacktype == eAttacktype::None)
+    {
+        Response["Result"]["Castle"] =
+            GetTutorialcastle(
+                Attacktype);
+    }
+    else if (Tutorial &&
+             Attacktype == eAttacktype::Progression)
+    {
+        Response["Result"]["Castle"] =
+            GetCastle(
+                RequestedCastleAccountId,
+                Castletype);
+    }
+    else if (Attacktype == eAttacktype::Progression)
+    {
+        uint64_t DungeonID =
+            Backend::Quest::GetCurrentDungeon(
+                CastleAccountId);
+
+        Infoprint(
+            va(
+                "Progression dungeon selected: %llu",
+                (unsigned long long)DungeonID));
+
+        Response["Result"]["Castle"] =
+            GetCastle(
+                DungeonID,
+                eCastletype::Ubisoft);
+    }
+    else if (!Tutorial)
+    {
+        Response["Result"]["Castle"] =
+            GetCastle(
+                CastleAccountId,
                 Castletype);
     }
 
-    if (Tutorial)
+    Infoprint(
+        va(
+            "StartAttack CastleAccount=%llu AttackType=%u Tutorial=%s",
+            (unsigned long long)CastleAccountId,
+            (unsigned)Attacktype,
+            Tutorial ? "true" : "false"));
+
+    if (Tutorial || DreadKnightQuestAttack)
         Response["Result"]["CastleType"] =
             Parsed["castleType"].get<uint32_t>();
 
-    Response["Result"]["Level"] =
-        Tutorial ? 1 : GetCastlelevel();
+    if (DreadKnightQuestAttack)
+    {
+        Response["Result"]["Level"] =
+            5;
+    }
+    else if (PVECompatibilityCastle)
+    {
+        Response["Result"]["Level"] =
+            PVECompatibilityEntry->Level;
 
+        Infoprint(
+            va(
+                "StartAttack: compatibility Result.Level=%u for PVE AccountId=%llu.",
+                PVECompatibilityEntry->Level,
+                (unsigned long long)CastleAccountId));
+    }
+    else if (Tutorial)
+    {
+        Response["Result"]["Level"] =
+            1;
+    }
+    else
+    {
+        const auto *PVECastle =
+            Backend::PvECastle::Find(
+                CastleAccountId);
+
+        if (PVECastle != nullptr)
+        {
+            Response["Result"]["Level"] =
+                PVECastle->Level;
+        }
+        else if (
+            Response["Result"]["Castle"].find("Level") !=
+                Response["Result"]["Castle"].end() &&
+            Response["Result"]["Castle"]["Level"].is_number())
+        {
+            Response["Result"]["Level"] =
+                Response["Result"]["Castle"]["Level"];
+        }
+        else
+        {
+            Response["Result"]["Level"] =
+                GetCastlelevel(
+                    CastleAccountId);
+        }
+    }
+
+    Infoprint(
+        va(
+            "Castle payload size=%u",
+            (unsigned)Response["Result"]["Castle"].dump().size()));
     Response["Result"]["Hero"] =
         Backend::Hero::Serialize();
 
@@ -501,7 +720,9 @@ void StartAttack(
         0.3;
 
     Response["Result"]["AttackType"] =
-        Tutorial ? 5 : Parsed["attackType"].get<uint32_t>();
+        (Tutorial || DreadKnightQuestAttack)
+            ? 5
+            : Parsed["attackType"].get<uint32_t>();
 
     if (!Tutorial)
         Response["Result"]["CastleValidationDuration"] =
@@ -537,7 +758,6 @@ void ApplyCollectedAttackLoot(
         {
             return 0;
         }
-
         for (auto &CreatureID : Request[Field])
         {
             if (!CreatureID.is_number_integer())
@@ -545,6 +765,9 @@ void ApplyCollectedAttackLoot(
 
             uint32_t ID =
                 CreatureID.get<uint32_t>();
+
+            bool Matched =
+                false;
 
             for (auto &Loot : LootTable)
             {
@@ -554,16 +777,37 @@ void ApplyCollectedAttackLoot(
                 if (Loot["Id"].get<uint32_t>() != ID)
                     continue;
 
+                Matched =
+                    true;
+
                 if (!Loot[RewardField].is_null())
                 {
                     Total +=
                         Loot[RewardField].get<uint32_t>();
                 }
 
+                Infoprint(
+                    va(
+                        "Loot lookup: Field=%s CreatureId=%u matched %s=%u.",
+                        Field,
+                        ID,
+                        RewardField,
+                        Loot[RewardField].is_null()
+                            ? 0
+                            : Loot[RewardField].get<uint32_t>()));
+
                 break;
             }
-        }
 
+            if (!Matched)
+            {
+                Infoprint(
+                    va(
+                        "Loot lookup MISS: Field=%s CreatureId=%u.",
+                        Field,
+                        ID));
+            }
+        }
         return Total;
     };
 
@@ -625,10 +869,20 @@ void EndAttack(
         the first complete root JSON object rather than using rfind('}'),
         because garbage bytes can themselves contain braces.
     */
-    std::string CleanBody = Body;
+    /*
+    The client frequently sends a valid EndAttack JSON object
+    followed by a large amount of non-JSON data.
+
+    Do not trust a brace counter to locate the JSON boundary.
+    Instead, try each possible closing brace until we find the
+    first prefix that is itself valid JSON.
+
+    This also handles braces/quotes inside trailing garbage.
+*/
+    std::string CleanBody;
 
     const size_t JsonStart =
-        CleanBody.find('{');
+        Body.find('{');
 
     if (JsonStart == std::string::npos)
     {
@@ -638,67 +892,40 @@ void EndAttack(
         return;
     }
 
-    size_t Depth = 0;
-    bool InString = false;
-    bool Escaped = false;
-    size_t JsonEnd = std::string::npos;
+    size_t JsonEnd =
+        std::string::npos;
 
     for (size_t Index = JsonStart;
-         Index < CleanBody.size();
+         Index < Body.size();
          ++Index)
     {
-        const char Character =
-            CleanBody[Index];
-
-        if (InString)
-        {
-            if (Escaped)
-            {
-                Escaped = false;
-                continue;
-            }
-
-            if (Character == '\\')
-            {
-                Escaped = true;
-                continue;
-            }
-
-            if (Character == '"')
-                InString = false;
-
+        if (Body[Index] != '}')
             continue;
-        }
 
-        if (Character == '"')
-        {
-            InString = true;
+        const size_t CandidateLength =
+            Index - JsonStart + 1;
+
+        std::string Candidate =
+            Body.substr(
+                JsonStart,
+                CandidateLength);
+
+        if (!MQEL_json::accept(Candidate))
             continue;
-        }
 
-        if (Character == '{')
-        {
-            ++Depth;
-            continue;
-        }
+        JsonEnd =
+            Index;
 
-        if (Character == '}')
-        {
-            if (Depth > 0)
-                --Depth;
+        CleanBody =
+            std::move(Candidate);
 
-            if (Depth == 0)
-            {
-                JsonEnd = Index;
-                break;
-            }
-        }
+        break;
     }
 
     if (JsonEnd == std::string::npos)
     {
         Infoprint(
-            "EndAttack: could not find the end of the JSON object.");
+            "EndAttack: could not find a valid JSON object in request.");
 
         return;
     }
@@ -711,22 +938,17 @@ void EndAttack(
                 (unsigned)JsonStart));
     }
 
-    if (JsonEnd + 1 < CleanBody.size())
+    if (JsonEnd + 1 < Body.size())
     {
         Infoprint(
             va(
                 "EndAttack: removing %u trailing byte(s) after JSON.",
-                (unsigned)(CleanBody.size() - JsonEnd - 1)));
+                (unsigned)(Body.size() - JsonEnd - 1)));
     }
-
-    CleanBody =
-        CleanBody.substr(
-            JsonStart,
-            JsonEnd - JsonStart + 1);
 
     Infoprint(
         va(
-            "EndAttack: extracted JSON body length=%u.",
+            "EndAttack: extracted valid JSON body length=%u.",
             (unsigned)CleanBody.size()));
 
     MQEL_json Parsed =
@@ -735,20 +957,203 @@ void EndAttack(
     MQEL_json Response;
 
     // Handle tutorial fights.
-    if (CurrentattackID == TutorialID1)
+    if (CurrentattackID == TutorialAttackID1 &&
+        !CurrentattackDreadKnightQuest)
     {
         Response = MQEL_json::parse(
-            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":33},{"CurrencyType":4,"Amount":33}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":60,"TotalXp":60,"Level":1,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":9,"PrimaryStatsModifiers":[0.354,0.998,0.021],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":37},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e719"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":8,"PrimaryStatsModifiers":[0.375,0.364,0.821],"IsSellable":true,"TemplateId":40},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71a"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":2,"PrimaryStatsModifiers":[1,1,1],"IsSellable":true,"TemplateId":53},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71b"}],"NotificationType":111}],"Result":{"AttackId":"580d504f5c98320c1881325a","DefenderCastleId":2,"DefenderCastleType":1,"DefenderOasisNameId":2325,"Duration":119100,"InitialGold":1000,"HeroLevel":1,"TotalXp":60,"TotalGold":33,"TotalLifeForce":33,"KillsXp":60,"KillsGold":33,"KillsLifeForce":33,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsTutorial":true,"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":16,"AttackTotalIGCWon":33,"TotalCastlesLooted":1,"CastlesDefeated":{"Medium":1},"KilledCreatures":{"1081":12,"1029":3,"1003":1},"CurrencyAccumulation":{"IGC":33,"LifeForce":33},"DefeatCastleStrike":1,"TotalItemsLooted":3},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
+            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":33},{"CurrencyType":4,"Amount":33}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":60,"TotalXp":60,"Level":1,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":9,"PrimaryStatsModifiers":[0.354,0.998,0.021],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":37},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e719"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":8,"PrimaryStatsModifiers":[0.375,0.364,0.821],"IsSellable":true,"TemplateId":40},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71a"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":2,"PrimaryStatsModifiers":[1,1,1],"IsSellable":true,"TemplateId":53},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71b"}],"NotificationType":111}],"Result":{"AttackId":"580d504f5c98320c1881325a","DefenderCastleId":2,"DefenderCastleType":1,"DefenderOasisNameId":2325,"Duration":119100,"InitialGold":1000,"HeroLevel":1,"TotalXp":60,"TotalGold":33,"TotalLifeForce":33,"KillsXp":60,"KillsGold":33,"KillsLifeForce":33,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsTutorial":true,"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":16,"AttackTotalIGCWon":33,"TotalCastlesLooted":1,"CastlesDefeated":{"Medium":1},"KilledCreatures":{"1081":12,"1029":3,"1003":1},"CurrencyAccumulation":{"IGC":33,"LifeForce":33},"DefeatCastleStrike":1,"TotalItemsLooted":3},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
     }
-    else if (CurrentattackID == TutorialID2)
+    else if (CurrentattackID == TutorialAttackID2)
     {
         Response = MQEL_json::parse(
-            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":29}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":66,"TotalXp":1868,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f50727"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":2,"ArchetypeId":4,"PrimaryStatsModifiers":[0.566,0.342,0.122],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":17},"ItemType":3,"ObjectId":"58043d945c98320eb4f50728"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":8,"PrimaryStatsModifiers":[0.98,0.24,0.777],"IsSellable":true,"TemplateId":44},"ObjectId":"58043d945c98320eb4f50729","NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":4,"ArchetypeId":3,"PrimaryStatsModifiers":[0.938,0.568,0.491],"IsSellable":true,"TemplateId":205},"ItemType":3,"ObjectId":"58043d945c98320eb4f5072a"}],"NotificationType":111}],"Result":{"AttackId":"58043d5d5c98320c1881325a","DefenderCastleId":3000947,"DefenderAccountDisplayName":"jonsie111","Duration":49933,"InitialXp":1802,"InitialGold":2000,"HeroLevel":4,"TotalXp":66,"TotalGold":103,"TotalLifeForce":29,"TreasureRoomGold":7,"PillagedIGCMinesAmount":67,"PillagedIGCMineCount":1,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":202,"AttackTotalIGCWon":833,"TotalCastlesLooted":10,"CastlesDefeated":{"Medium":5,"Easy":4,"Hard":1},"KilledCreatures":{"1081":86,"1029":7,"1003":2,"1000":21,"1006":3,"1023":4,"1079":8,"1155":1,"1001":24,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"DefeatCastleStrike":4,"TotalPotionsConsumed":5},"TrophyScoreVariation":{},"VictoryConditionLevel":3,"DefenderLossIGC":7,"EnterTreasureRoom":true,"CastleShieldedByAttacker":true,"CastleValidationDuration":44233,"LastComment":{"AttackId":"580238555c98321778c363ba","AccountId":3140910,"Comment":{"Raw":"for beginners..."},"AvatarId":10}})");
+            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":29}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":66,"TotalXp":1868,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f50727"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":2,"ArchetypeId":4,"PrimaryStatsModifiers":[0.566,0.342,0.122],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":17},"ItemType":3,"ObjectId":"58043d945c98320eb4f50728"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":8,"PrimaryStatsModifiers":[0.98,0.24,0.777],"IsSellable":true,"TemplateId":44},"ItemType":3,"ObjectId":"58043d945c98320eb4f50729","NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":4,"ArchetypeId":3,"PrimaryStatsModifiers":[0.938,0.568,0.491],"IsSellable":true,"TemplateId":205},"ItemType":3,"ObjectId":"58043d945c98320eb4f5072a"}],"NotificationType":111}],"Result":{"AttackId":"58043d5d5c98320c1881325a","DefenderCastleId":3000947,"DefenderAccountDisplayName":"jonsie111","Duration":49933,"InitialXp":1802,"InitialGold":2000,"HeroLevel":4,"TotalXp":66,"TotalGold":103,"TotalLifeForce":29,"TreasureRoomGold":7,"PillagedIGCMinesAmount":67,"PillagedIGCMineCount":1,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":202,"AttackTotalIGCWon":833,"TotalCastlesLooted":10,"CastlesDefeated":{"Medium":5,"Easy":4,"Hard":1},"KilledCreatures":{"1081":86,"1029":7,"1003":2,"1000":21,"1006":3,"1023":4,"1079":8,"1155":1,"1001":24,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":4,"TotalPotionsConsumed":5},"TrophyScoreVariation":{},"VictoryConditionLevel":3,"DefenderLossIGC":7,"EnterTreasureRoom":true,"CastleShieldedByAttacker":true,"CastleValidationDuration":44233,"LastComment":{"AttackId":"580238555c98321778c363ba","AccountId":3140910,"Comment":{"Raw":"for beginners..."},"AvatarId":10}})");
     }
     else
     {
         Response = MQEL_json::parse(
-            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":165}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveCompletedNotification, HyperQuest.GameServer.Contracts","ObjectiveId":302,"NotificationType":14},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507be"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bf"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f507c0"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveUnlockedNotification, HyperQuest.GameServer.Contracts","AccountObjective":{"ObjectiveId":303,"LastStatusDate":"2016-10-17T02:58:42Z","Status":1},"NotificationType":17}],"Result":{"AttackId":"58043dab5c98320eb4f50743","DefenderCastleId":101,"DefenderAccountDisplayName":"Fendrick's Farm","DefenderOasisNameId":16659,"Duration":172600,"InitialGold":2000,"HeroLevel":4,"TotalXp":333,"TotalGold":179,"TotalLifeForce":165,"KillsXp":333,"KillsGold":133,"KillsLifeForce":119,"TreasureRoomGold":46,"TreasureRoomLifeForce":46,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":75},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":243,"AttackTotalIGCWon":1012,"TotalCastlesLooted":11,"CastlesDefeated":{"Medium":5,"Easy":5,"Hard":1},"KilledCreatures":{"1081":103,"1029":7,"1003":5,"1000":24,"1006":3,"1079":8,"1155":1,"1001":26,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":5,"TotalPotionsConsumed":5,"TotalItemsLooted":33},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
+            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":165}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveCompletedNotification, HyperQuest.GameServer.Contracts","ObjectiveId":302,"NotificationType":14},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507be"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bf"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f507c0"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveUnlockedNotification, HyperQuest.GameServer.Contracts","AccountObjective":{"ObjectiveId":303,"LastStatusDate":"2016-10-17T02:58:42Z","Status":1},"NotificationType":17}],"Result":{"AttackId":"58043dab5c98320eb4f50743","DefenderCastleId":101,"DefenderAccountDisplayName":"Fendrick's Farm","DefenderOasisNameId":16659,"Duration":172600,"InitialGold":2000,"HeroLevel":4,"TotalXp":333,"TotalGold":179,"TotalLifeForce":165,"KillsXp":333,"KillsGold":133,"KillsLifeForce":119,"TreasureRoomGold":46,"TreasureRoomLifeForce":46,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":75},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":243,"AttackTotalIGCWon":1012,"TotalCastlesLooted":11,"CastlesDefeated":{"Medium":5,"Easy":5,"Hard":1},"KilledCreatures":{"1081":103,"1029":7,"1003":5,"1000":24,"1006":3,"1079":8,"1155":1,"1001":26,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":5,"TotalPotionsConsumed":5,"TotalItemsLooted":33},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
+    }
+
+    /*
+      The generic EndAttack response historically contained the
+      Fendrick's Farm progression data (Castle 101).
+
+      That is wrong when the player actually attacked another
+      PVE castle such as Tybalt's Farm (100).
+
+      Rebind the defender identity to the castle from StartAttack.
+  */
+    if (CurrentattackCastleID != 0)
+    {
+        const auto *PVECastle =
+            Backend::PvECastle::Find(
+                CurrentattackCastleID);
+
+        Response["Result"]["DefenderCastleId"] =
+            CurrentattackCastleID;
+
+        Response["Result"]["DefenderCastleType"] =
+            (uint32_t)
+                CurrentattackCastleType;
+
+        if (PVECastle != nullptr)
+        {
+            if (!PVECastle->AccountDisplayName.empty())
+            {
+                Response["Result"]["DefenderAccountDisplayName"] =
+                    PVECastle->AccountDisplayName;
+            }
+
+            if (PVECastle->OasisNameId != 0)
+            {
+                Response["Result"]["DefenderOasisNameId"] =
+                    PVECastle->OasisNameId;
+            }
+
+            Infoprint(
+                va(
+                    "EndAttack: rebound defender to AccountId=%llu name=%s OasisNameId=%u.",
+                    (unsigned long long)
+                        CurrentattackCastleID,
+                    PVECastle->AccountDisplayName.empty()
+                        ? "Unknown Castle"
+                        : PVECastle->AccountDisplayName.c_str(),
+                    PVECastle->OasisNameId));
+        }
+        else
+        {
+            Infoprint(
+                va(
+                    "EndAttack: rebound defender AccountId=%llu but no PVE database entry was found.",
+                    (unsigned long long)
+                        CurrentattackCastleID));
+        }
+    }
+
+    if (CurrentattackDreadKnightQuest)
+    {
+        /*
+            Dreadknight was actually played as Castle 21.
+
+            Do not convert the completed attack back into the
+            Castle 2 tutorial identity. The EndAttack result must
+            describe the castle that was actually played.
+        */
+        const auto *DreadCastle =
+            Backend::PvECastle::Find(
+                DreadKnightCastleID);
+
+        Response["Result"]["DefenderCastleId"] =
+            DreadKnightCastleID;
+
+        Response["Result"]["DefenderCastleType"] =
+            (uint32_t)
+                CurrentattackCastleType;
+
+        if (DreadCastle != nullptr)
+        {
+            if (!DreadCastle->AccountDisplayName.empty())
+            {
+                Response["Result"]["DefenderAccountDisplayName"] =
+                    DreadCastle->AccountDisplayName;
+            }
+
+            if (DreadCastle->OasisNameId != 0)
+            {
+                Response["Result"]["DefenderOasisNameId"] =
+                    DreadCastle->OasisNameId;
+            }
+
+            Infoprint(
+                va(
+                    "EndAttack: Dread result bound to Castle 21 name=%s OasisNameId=%u.",
+                    DreadCastle->AccountDisplayName.empty()
+                        ? "Unknown Castle"
+                        : DreadCastle->AccountDisplayName.c_str(),
+                    DreadCastle->OasisNameId));
+        }
+        else
+        {
+            Infoprint(
+                "EndAttack: Dread Castle 21 was not found in the PVE database.");
+        }
+    }
+
+    /*
+        The generic EndAttack template contains Fendrick's
+        progression notifications.
+
+        Do not send those when the player attacked another castle.
+    */
+    if (CurrentattackCastleID != 101 &&
+        Response["Notifications"].is_array())
+    {
+        for (size_t Index =
+                 Response["Notifications"].size();
+             Index > 0;
+             --Index)
+        {
+            auto &Notification =
+                Response["Notifications"][Index - 1];
+
+            if (Notification["$type"].is_null() ||
+                !Notification["$type"].is_string())
+            {
+                continue;
+            }
+
+            const std::string Type =
+                Notification["$type"].get<std::string>();
+
+            /*
+                ObjectiveCompletedNotification stores ObjectiveId
+                directly on the notification.
+            */
+            if (Type.find("ObjectiveCompletedNotification") !=
+                    std::string::npos &&
+                !Notification["ObjectiveId"].is_null() &&
+                Notification["ObjectiveId"].is_number_integer())
+            {
+                const uint32_t ObjectiveId =
+                    Notification["ObjectiveId"].get<uint32_t>();
+
+                if (ObjectiveId == 302)
+                {
+                    Infoprint(
+                        "EndAttack: removing hardcoded Fendrick Objective 302.");
+
+                    Response["Notifications"].erase(
+                        Response["Notifications"].begin() +
+                        (Index - 1));
+
+                    continue;
+                }
+            }
+
+            /*
+                ObjectiveUnlockedNotification stores ObjectiveId
+                inside AccountObjective.
+            */
+            if (Type.find("ObjectiveUnlockedNotification") !=
+                    std::string::npos &&
+                !Notification["AccountObjective"].is_null() &&
+                !Notification["AccountObjective"]["ObjectiveId"].is_null() &&
+                Notification["AccountObjective"]["ObjectiveId"].is_number_integer())
+            {
+                const uint32_t ObjectiveId =
+                    Notification["AccountObjective"]["ObjectiveId"].get<uint32_t>();
+
+                if (ObjectiveId == 303)
+                {
+                    Infoprint(
+                        "EndAttack: removing hardcoded Fendrick Objective 303.");
+
+                    Response["Notifications"].erase(
+                        Response["Notifications"].begin() +
+                        (Index - 1));
+                }
+            }
+        }
     }
 
     /*
@@ -757,7 +1162,6 @@ void EndAttack(
     ApplyCollectedAttackLoot(
         Parsed["endAttackParams"],
         Response);
-
     uint32_t CollectedGold = 0;
     uint32_t CollectedLifeForce = 0;
 
@@ -800,7 +1204,7 @@ void EndAttack(
                         CollectedGold;
                 }
                 else if (CurrencyType ==
-                    (uint32_t)eCurrencytype::Lifeforce)
+                         (uint32_t)eCurrencytype::Lifeforce)
                 {
                     Amount["Amount"] =
                         CollectedLifeForce;
@@ -832,12 +1236,20 @@ void EndAttack(
 
     uint32_t XPReward = 0;
 
-    if (CurrentattackID == TutorialID1)
+    if (CurrentattackID == TutorialAttackID1 &&
+        !CurrentattackDreadKnightQuest)
+    {
         XPReward = 60;
-    else if (CurrentattackID == TutorialID2)
+    }
+    else if (CurrentattackID == TutorialAttackID2 &&
+             !CurrentattackDreadKnightQuest)
+    {
         XPReward = 66;
+    }
     else
+    {
         XPReward = 333;
+    }
 
     auto HeroState =
         Backend::Hero::Serialize();

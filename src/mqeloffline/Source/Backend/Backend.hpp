@@ -15,9 +15,17 @@ namespace Backend
     namespace Quest
     {
         void Start(uint32_t QuestID);
+        bool IsStarted(uint32_t QuestID);
         void Complete(uint32_t QuestID);
+
         std::vector<uint32_t> Getcompleted();
-        void Update(uint32_t QuestID, uint32_t ActionID);
+
+        uint64_t GetCurrentDungeon(
+            uint64_t SelectedCastleID);
+
+        void Update(
+            uint32_t QuestID,
+            uint32_t ActionID);
     }
 
     // Notification tracking and management.
@@ -47,8 +55,8 @@ namespace Backend
         MQEL_json Serialize(T Type);
     }
 
-        // Persistent player inventory.
-        namespace Inventory
+    // Persistent player inventory.
+    namespace Inventory
     {
         // Load persistent inventory state.
         void Load();
@@ -81,8 +89,8 @@ namespace Backend
         MQEL_json Serializeinbox();
     }
 
-        // Hero status and management.
-        namespace Hero
+    // Hero status and management.
+    namespace Hero
     {
         // Fetch general properties.
         template <typename C = int>

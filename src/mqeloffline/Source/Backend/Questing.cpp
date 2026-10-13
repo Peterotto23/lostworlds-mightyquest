@@ -59,6 +59,48 @@ namespace Backend
             // Persist immediately so a crash/logout cannot lose progression.
             Savequests();
         }
+
+        bool IsStarted(uint32_t QuestID)
+        {
+            if (Questmap == nullptr)
+                return false;
+
+            auto Iterator =
+                Questmap->find(
+                    QuestID);
+
+            if (Iterator == Questmap->end())
+                return false;
+
+            return !Iterator->second;
+        }
+
+        uint64_t GetCurrentDungeon(
+            uint64_t SelectedCastleID)
+        {
+            /*
+                Normal PVE: honor the castle explicitly selected by the client.
+            */
+            if (SelectedCastleID != 0)
+            {
+                Infoprint(
+                    va(
+                        "PVE dungeon selected by client: %llu",
+                        (unsigned long long)
+                            SelectedCastleID));
+
+                return SelectedCastleID;
+            }
+
+            /*
+                Safe fallback.
+            */
+            Infoprint(
+                "PVE dungeon: no castle selected; using fallback Castle 4.");
+
+            return 4;
+        }
+
         std::vector<uint32_t> Getcompleted()
         {
             std::vector<uint32_t> Result;
@@ -73,6 +115,7 @@ namespace Backend
 
             return Result;
         }
+
         void Update(uint32_t QuestID, uint32_t ActionID)
         {
             Infoprint(va("Client modified quest %i with action %i", QuestID, ActionID));

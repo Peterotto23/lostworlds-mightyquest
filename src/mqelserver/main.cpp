@@ -155,9 +155,11 @@ int main(int argc, char **argv)
 
         LOG("Generating TLS certificate (OpenSSL)...");
         g_gs = new LocalGameserver();
+
         LOG("Backend loaded, certificate ready.");
 
         SOCKET ls = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
         if (ls == INVALID_SOCKET)
         {
             LOG("socket() failed %d", WSAGetLastError());
