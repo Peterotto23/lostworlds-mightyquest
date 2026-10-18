@@ -204,6 +204,95 @@ namespace Backend
                 Slot));
         }
 
+        uint32_t Consumeconsumable(
+            uint32_t TemplateId,
+            uint32_t Count)
+        {
+            if (TemplateId == 0 || Count == 0)
+                return 0;
+
+            uint32_t Remaining = Count;
+            uint32_t Consumed = 0;
+
+            for (auto Iterator = Items.begin();
+                 Iterator != Items.end() && Remaining > 0;)
+            {
+                auto &Item = Iterator->Item;
+
+                if (!Item.is_object() ||
+                    !Item["TemplateId"].is_number() ||
+                    Item["TemplateId"].get<uint32_t>() != TemplateId)
+                {
+                    ++Iterator;
+                    continue;
+                }
+
+                const auto TypeIt = Item.find("$type");
+
+                if (TypeIt == Item.end() ||
+                    !TypeIt->is_string() ||
+                    TypeIt->get<std::string>().find(
+                        "HeroConsumableItem") == std::string::npos)
+                {
+                    ++Iterator;
+                    continue;
+                }
+
+                uint32_t StackCount = 1;
+
+                const auto StackIt = Item.find("StackCount");
+
+                if (StackIt != Item.end() &&
+                    StackIt->is_number_integer())
+                {
+                    const int64_t StoredCount =
+                        StackIt->get<int64_t>();
+
+                    if (StoredCount <= 0)
+                    {
+                        ++Iterator;
+                        continue;
+                    }
+
+                    StackCount =
+                        static_cast<uint32_t>(StoredCount);
+                }
+
+                const uint32_t ToConsume =
+                    StackCount < Remaining
+                        ? StackCount
+                        : Remaining;
+
+                Consumed += ToConsume;
+                Remaining -= ToConsume;
+
+                if (ToConsume == StackCount)
+                {
+                    // Remove an exhausted consumable stack.
+                    Iterator = Items.erase(Iterator);
+                }
+                else
+                {
+                    Item["StackCount"] =
+                        StackCount - ToConsume;
+
+                    ++Iterator;
+                }
+            }
+
+            if (Consumed > 0)
+                Save();
+
+            Infoprint(va(
+                "Inventory::Consumeconsumable TemplateId=%u requested=%u consumed=%u remaining=%u.",
+                TemplateId,
+                Count,
+                Consumed,
+                Remaining));
+
+            return Consumed;
+        }
+
         bool Swap(int SourceSlot, int DestinationSlot)
         {
             InventoryItem_t *Source = nullptr;
@@ -353,12 +442,43 @@ namespace Backend
 
             for (auto &Item : Items)
             {
-                MQEL_json Object = Item.Item;
+                // Match the HeroItems format used in the original
+                // game's account templates.
+                MQEL_json InventoryEntry = MQEL_json::object();
+                MQEL_json ItemData = Item.Item;
 
-                Object["ObjectId"] = Item.ObjectID;
-                Object["SlotIndex"] = Item.Slot;
+                // These fields belong to our persistence format or the
+                // older custom response, not inside the game item object.
+                ItemData.erase("ObjectId");
+                ItemData.erase("SlotIndex");
+                ItemData.erase("Slot");
+                ItemData.erase("Type");
 
-                Result += Object;
+                // Consumables carry their stack count. Equipment items
+                // use a stack count of one.
+                auto StackCount = ItemData.find("StackCount");
+
+                if (StackCount != ItemData.end() &&
+                    StackCount->is_number_integer())
+                {
+                    InventoryEntry["StackCount"] =
+                        StackCount->get<uint32_t>();
+                }
+                else
+                {
+                    InventoryEntry["StackCount"] = 1;
+                }
+
+                // An item without an assigned slot must not be forced
+                // into slot zero.
+                if (Item.Slot >= 0)
+                {
+                    InventoryEntry["SlotIndex"] = Item.Slot;
+                }
+
+                InventoryEntry["Item"] = ItemData;
+
+                Result.push_back(InventoryEntry);
             }
 
             return Result;

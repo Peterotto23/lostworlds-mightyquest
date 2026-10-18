@@ -106,11 +106,19 @@ void Sendreply(
             Resultobject;
     }
 
+    /*
+        Only wrap plain service data in Result.
+        Preserve existing response envelopes and notifications.
+    */
+    const bool AlreadyHasResponseEnvelope =
+        Parsed.find("Result") != Parsed.end() ||
+        Parsed.find("Notifications") != Parsed.end() ||
+        Parsed.find("GlobalNotifications") != Parsed.end();
+
     if (!Parsed.empty() &&
-        Message["Result"].is_null())
+        !AlreadyHasResponseEnvelope)
     {
-        Message["Result"] =
-            Parsed;
+        Message["Result"] = Parsed;
     }
 
     // Serialize the exact payload that will be sent.

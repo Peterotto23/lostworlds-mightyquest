@@ -106,10 +106,11 @@ void GetAccountInformation(Gameserver *Server, std::string Request, std::string 
 {
     // Static account information.
     auto Battlelog = MQEL_json::parse(R"({"OfflinePeriod":{"EndDateTime":"2016-10-16T10:40:52Z"}})");
-    auto Inventory = MQEL_json::parse(R"({"InventoryTabCount":2})");
+    auto Inventory = MQEL_json::parse(
+        R"({"InventoryTabCount":2})");
 
-    Inventory["Items"] = Backend::Inventory::Serialize();
-    Inventory["Inbox"] = Backend::Inventory::Serializeinbox();
+    Inventory["HeroItems"] = Backend::Inventory::Serialize();
+
     auto Emotes = MQEL_json::parse(R"([1,2,3])");
     bool Herocreated = Backend::Hero::Getheroclass() != 0;
 

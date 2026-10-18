@@ -486,6 +486,104 @@ void GetAttackSelectionList(
                 Exception.what()));
     }
 
+    /*
+        Refresh the HUD when the attack-selection list is requested.
+        Build all notifications before sending the response.
+    */
+    const auto HeroState =
+        Backend::Hero::Serialize();
+
+    const int32_t CurrentGold =
+        Backend::Wallet::Getamount(eCurrencytype::IGC);
+
+    const int32_t CurrentLifeForce =
+        Backend::Wallet::Getamount(eCurrencytype::Lifeforce);
+
+    const uint32_t CurrentXP =
+        HeroState["XP"].is_number()
+            ? HeroState["XP"].get<uint32_t>()
+            : 0;
+
+    const uint32_t CurrentLevel =
+        HeroState["Level"].is_number()
+            ? HeroState["Level"].get<uint32_t>()
+            : 1;
+
+    const uint32_t HeroSpecContainerId =
+        HeroState["HeroSpecContainerId"].is_number()
+            ? HeroState["HeroSpecContainerId"].get<uint32_t>()
+            : (uint32_t)Backend::Hero::Getheroclass();
+
+    /*
+        Mirror the live wallet fields returned by
+        AccountInformationService::GetAccountInformation.
+
+        This supplements the existing castle-selection Result;
+        it does not replace the castle list or award currency.
+    */
+    Response["Result"]["Wallet"]["InGameCoin"] =
+        CurrentGold;
+
+    Response["Result"]["Wallet"]["LifeForce"] =
+        CurrentLifeForce;
+
+    Response["Result"]["Wallet"]["InGameCoinStorageCapacity"] =
+        Backend::Wallet::Getcapacity(eCurrencytype::IGC);
+
+    Response["Result"]["Wallet"]["LifeForceStorageCapacity"] =
+        Backend::Wallet::Getcapacity(eCurrencytype::Lifeforce);
+
+    // Keep the existing notification mechanism unchanged.
+    Response["Notifications"] = MQEL_json::array();
+
+    auto AddWalletNotification =
+        [&Response](eCurrencytype Currency)
+    {
+        MQEL_json Notification =
+            MQEL_json::object();
+
+        Notification["$type"] =
+            "HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts";
+
+        Notification["Amounts"] =
+            MQEL_json::array();
+
+        Notification["Amounts"].push_back(
+            Backend::Wallet::Serialize(Currency));
+
+        Notification["NotificationType"] = 24;
+
+        Response["Notifications"].push_back(
+            Notification);
+    };
+
+    AddWalletNotification(eCurrencytype::IGC);
+    AddWalletNotification(eCurrencytype::Lifeforce);
+
+    MQEL_json XPNotification =
+        MQEL_json::object();
+
+    XPNotification["$type"] =
+        "HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts";
+
+    XPNotification["HeroSpecContainerId"] =
+        HeroSpecContainerId;
+
+    XPNotification["XpAdded"] = 0;
+    XPNotification["TotalXp"] = CurrentXP;
+    XPNotification["Level"] = CurrentLevel;
+    XPNotification["NotificationType"] = 43;
+
+    Response["Notifications"].push_back(
+        XPNotification);
+    Infoprint(
+        va(
+            "SendCommand global state snapshot: Gold=%d LifeForce=%d XP=%u Level=%u.",
+            CurrentGold,
+            CurrentLifeForce,
+            CurrentXP,
+            CurrentLevel));
+
     Sendreply(
         Server,
         Response.dump());
@@ -496,6 +594,7 @@ void GetCastleInfo(
     std::string Request,
     std::string Body)
 {
+
     MQEL_json Response =
         MQEL_json::object();
 

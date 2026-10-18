@@ -14,6 +14,13 @@ uint64_t CurrentattackID;
 uint64_t CurrentattackCastleID = 0;
 eCastletype CurrentattackCastleType = eCastletype::Ubisoft;
 bool CurrentattackDreadKnightQuest = false;
+MQEL_json CurrentattackEquippedConsumables = MQEL_json::array();
+bool CurrentattackConsumablesProcessed = false;
+
+// State for the attack currently in progress.
+MQEL_json CurrentattackCreatureLoot = MQEL_json::array();
+int32_t CurrentattackInitialGold = 0;
+uint32_t CurrentattackInitialXP = 0;
 
 constexpr uint64_t TutorialCastleID = 2;
 constexpr uint64_t BewarewichCastleID = 3;
@@ -102,6 +109,145 @@ MQEL_json GetCreatureloot()
 {
     return MQEL_json::parse(
         R"([{"Id":45,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":46,"Gold":9,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":47,"Gold":1,"Xp":2,"LifeForce":2,"HealthOrbFragments":1},{"Id":48,"Gold":1,"Xp":2,"HealthOrbFragments":1},{"Id":49,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":50,"Gold":3,"Xp":2,"LifeForce":5,"HealthOrbFragments":1},{"Id":68,"Gold":2,"Xp":2,"HealthOrbFragments":1},{"Id":58,"Gold":2,"Xp":8,"LifeForce":4,"HealthOrbFragments":16},{"Id":65,"Gold":1,"Xp":2,"LifeForce":2,"HealthOrbFragments":1},{"Id":56,"Gold":1,"Xp":12,"LifeForce":1,"HealthOrbFragments":24,"InventoryItems":[{"$type":"HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts","ItemLevel":1,"ArchetypeId":9,"PrimaryStatsModifiers":[0.354,0.998,0.021],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":37},{"$type":"HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts","ItemLevel":1,"ArchetypeId":8,"PrimaryStatsModifiers":[0.375,0.364,0.821],"IsSellable":true,"TemplateId":40}]},{"Id":44,"Gold":1,"Xp":2,"LifeForce":5,"HealthOrbFragments":1},{"Id":69,"Gold":2,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":81,"Gold":1,"Xp":2,"LifeForce":1,"HealthOrbFragments":4},{"Id":70,"Gold":2,"Xp":2,"LifeForce":1,"HealthOrbFragments":1},{"Id":59,"Gold":3,"Xp":8,"LifeForce":2,"HealthOrbFragments":16},{"Id":57,"Gold":1,"Xp":8,"LifeForce":5,"HealthOrbFragments":16},{"Id":66,"Gold":2,"Xp":2,"LifeForce":1,"HealthOrbFragments":1}])");
+}
+
+MQEL_json GetCreaturelootForCastle(const MQEL_json &Castle)
+{
+    uint64_t AccountId = 0;
+
+    if (Castle["AccountId"].is_number())
+        AccountId = Castle["AccountId"].get<uint64_t>();
+
+    // Preserve the existing bespoke drops for the first tutorial castle.
+    if (AccountId == TutorialCastleID)
+        return GetCreatureloot();
+
+    if (!Castle["Rooms"].is_array())
+        return GetCreatureloot();
+
+    MQEL_json LootTable = MQEL_json::array();
+
+    // Build loot entries using the creature INSTANCE IDs in this castle.
+    for (const auto &Room : Castle["Rooms"])
+    {
+        if (!Room["Creatures"].is_array())
+            continue;
+
+        for (const auto &Creature : Room["Creatures"])
+        {
+            if (!Creature["Id"].is_number())
+                continue;
+
+            const uint32_t Id =
+                Creature["Id"].get<uint32_t>();
+
+            // Do not insert an instance ID twice.
+            bool AlreadyAdded = false;
+
+            for (const auto &Existing : LootTable)
+            {
+                if (Existing["Id"].is_number() &&
+                    Existing["Id"].get<uint32_t>() == Id)
+                {
+                    AlreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (AlreadyAdded)
+                continue;
+
+            const uint32_t Spec =
+                Creature["SpecContainerId"].is_number()
+                    ? Creature["SpecContainerId"].get<uint32_t>()
+                    : 0;
+
+            // These construction-point values are based on the supplied
+            // CreatureDefinitions.json data for the creature types below.
+            uint32_t ConstructionPoints = 1;
+            uint32_t Fragments = 1;
+
+            switch (Spec)
+            {
+            case 1000: // DERP_GRUNT
+            case 1001: // SNOTTER_GRUNT
+                ConstructionPoints = 1;
+                Fragments = 4;
+                break;
+
+            case 1002: // TENTAKILL_GRUNT
+                ConstructionPoints = 2;
+                Fragments = 8;
+                break;
+
+            case 1003: // CYCLOPS_CAPTAIN
+                ConstructionPoints = 6;
+                Fragments = 24;
+                break;
+
+            case 1006: // BONEPUPPETEER_CAPTAIN
+            case 1079: // GOATMAN_CAPTAIN
+                ConstructionPoints = 3;
+                Fragments = 12;
+                break;
+
+            case 1023: // SMELLYWARRIOR_CAPTAIN
+            case 1029: // BATTERINGRAM_CAPTAIN
+                ConstructionPoints = 4;
+                Fragments = 16;
+                break;
+
+            case 1068: // BONEPUPPET_SPAWN
+                ConstructionPoints = 1;
+                Fragments = 1;
+                break;
+
+            case 1081: // CHICKEN
+                ConstructionPoints = 1;
+                Fragments = 1;
+                break;
+
+            case 1085: // CHICKEN_ELITE
+            case 1155: // LD_CHICKEN_ELITE_PVEONLY
+                ConstructionPoints = 8;
+                Fragments = 32;
+                break;
+
+            default:
+                // Give otherwise unlisted creatures a basic positive
+                // reward instead of silently omitting their drops.
+                ConstructionPoints = 1;
+                Fragments = 1;
+                break;
+            }
+
+            // XP follows the baseline seen in the existing creature table:
+            // 1 CP = 2 XP, 4 CP = 8 XP, 6 CP = 12 XP.
+            const uint32_t Xp =
+                ConstructionPoints * 2;
+
+            // Conservative deterministic fallback values for offline PvE.
+            // These restore usable drops but do not reproduce the original
+            // server's full randomized reward formula.
+            const uint32_t Gold =
+                ConstructionPoints >= 8 ? 3 : ConstructionPoints >= 3 ? 2
+                                                                      : 1;
+
+            const uint32_t LifeForce =
+                ConstructionPoints >= 8 ? 5 : ConstructionPoints >= 3 ? 2
+                                                                      : 1;
+
+            LootTable.push_back({{"Id", Id},
+                                 {"Gold", Gold},
+                                 {"Xp", Xp},
+                                 {"LifeForce", LifeForce},
+                                 {"HealthOrbFragments", Fragments}});
+        }
+    }
+
+    return LootTable.empty()
+               ? GetCreatureloot()
+               : LootTable;
 }
 
 void Fixclassloot(MQEL_json &Response)
@@ -234,14 +380,22 @@ MQEL_json GetTraploot()
 
 MQEL_json GetIGCreward()
 {
+    /*
+        Match the currently advertised castle-selection loot:
+        50 IGC * 0.30 treasure-room ratio = 15 gold.
+    */
     return MQEL_json::parse(
-        R"({"CurrencyType": 2,"Amount": 10})");
+        R"({"CurrencyType": 2,"Amount": 15})");
 }
 
 MQEL_json GetLifereward()
 {
+    /*
+        Life Force was missing Amount entirely, which explains
+        why the client reported zero from the treasure room.
+    */
     return MQEL_json::parse(
-        R"({"CurrencyType": 4})");
+        R"({"CurrencyType": 4,"Amount": 15})");
 }
 
 MQEL_json GetMines()
@@ -258,8 +412,293 @@ MQEL_json GetSpells()
 
 MQEL_json GetAttackerconsumables()
 {
-    return MQEL_json::parse(
-        R"([{"TemplateId":1002,"StackCount":2},{"TemplateId":1004,"StackCount":2},{"TemplateId":1011,"StackCount":1},{"TemplateId":1000,"StackCount":1}])");
+    // Read the active hero's equipped consumable templates.
+    const MQEL_json Hero =
+        Backend::Hero::Serialize();
+
+    // Read the actual persistent inventory.
+    // Entries contain SlotIndex and StackCount around Item.
+    const MQEL_json Inventory =
+        Backend::Inventory::Serialize();
+
+    MQEL_json Result = MQEL_json::array();
+
+    const auto &Equipped =
+        Hero["EquippedConsumables"];
+
+    if (!Equipped.is_array())
+    {
+        Infoprint(
+            "AttackService: no equipped consumables array found.");
+
+        return Result;
+    }
+
+    // Build attack consumable counts from the saved inventory,
+    // rather than returning hard-coded template IDs.
+    for (const auto &EquippedItem : Equipped)
+    {
+        if (!EquippedItem.is_object() ||
+            !EquippedItem["TemplateId"].is_number())
+        {
+            continue;
+        }
+
+        const uint32_t TemplateId =
+            EquippedItem["TemplateId"].get<uint32_t>();
+
+        if (TemplateId == 0)
+            continue;
+
+        // Only include each template once in the response.
+        bool AlreadyAdded = false;
+
+        for (const auto &Existing : Result)
+        {
+            if (Existing["TemplateId"].is_number() &&
+                Existing["TemplateId"].get<uint32_t>() ==
+                    TemplateId)
+            {
+                AlreadyAdded = true;
+                break;
+            }
+        }
+
+        if (AlreadyAdded)
+            continue;
+
+        uint32_t TotalStackCount = 0;
+
+        // Count every saved inventory stack for this consumable.
+        for (const auto &InventoryEntry : Inventory)
+        {
+            if (!InventoryEntry.is_object() ||
+                !InventoryEntry["Item"].is_object())
+            {
+                continue;
+            }
+
+            const auto &Item =
+                InventoryEntry["Item"];
+
+            if (!Item["TemplateId"].is_number() ||
+                Item["TemplateId"].get<uint32_t>() !=
+                    TemplateId)
+            {
+                continue;
+            }
+
+            const std::string ItemType =
+                Item["$type"].is_string()
+                    ? Item["$type"].get<std::string>()
+                    : "";
+
+            // Do not count equipment with a coincidentally
+            // matching TemplateId.
+            if (ItemType.find("HeroConsumableItem") ==
+                std::string::npos)
+            {
+                continue;
+            }
+
+            uint32_t StackCount = 1;
+
+            if (Item["StackCount"].is_number())
+            {
+                StackCount =
+                    Item["StackCount"].get<uint32_t>();
+            }
+            else if (InventoryEntry["StackCount"].is_number())
+            {
+                StackCount =
+                    InventoryEntry["StackCount"].get<uint32_t>();
+            }
+
+            TotalStackCount += StackCount;
+        }
+
+        MQEL_json ConsumableInfo =
+            MQEL_json::object();
+
+        ConsumableInfo["TemplateId"] = TemplateId;
+        ConsumableInfo["StackCount"] = TotalStackCount;
+
+        Result.push_back(ConsumableInfo);
+    }
+
+    Infoprint(
+        va(
+            "AttackService: InventoryConsumablesInfo=%s",
+            Result.dump().c_str()));
+
+    return Result;
+}
+
+// Attach owned inventory counts to equipped consumables in the
+// temporary Hero snapshot returned when an attack starts.
+void AttachInventoryCountsToAttackHero(
+    MQEL_json &Hero,
+    const MQEL_json &InventoryConsumablesInfo)
+{
+    auto &Equipped = Hero["EquippedConsumables"];
+
+    if (!Equipped.is_array() ||
+        !InventoryConsumablesInfo.is_array())
+    {
+        return;
+    }
+
+    for (auto &EquippedItem : Equipped)
+    {
+        if (!EquippedItem.is_object() ||
+            !EquippedItem["TemplateId"].is_number())
+        {
+            continue;
+        }
+
+        const uint32_t TemplateId =
+            EquippedItem["TemplateId"].get<uint32_t>();
+
+        for (const auto &InventoryItem : InventoryConsumablesInfo)
+        {
+            if (!InventoryItem.is_object() ||
+                !InventoryItem["TemplateId"].is_number() ||
+                InventoryItem["TemplateId"].get<uint32_t>() != TemplateId ||
+                !InventoryItem["StackCount"].is_number())
+            {
+                continue;
+            }
+
+            const uint32_t InventoryStackCount =
+                InventoryItem["StackCount"].get<uint32_t>();
+
+            if (InventoryStackCount > 0)
+            {
+                // TemplateId 1 is the Minor Health Potion.
+                // The captured game model reports 3 uses available per attack.
+                uint32_t AttackStackCount = InventoryStackCount;
+
+                if (TemplateId == 1 && AttackStackCount > 3)
+                    AttackStackCount = 3;
+
+                // Cap only the temporary combat entry.
+                // InventoryConsumablesInfo still reports the actual owned stack.
+                EquippedItem["StackCount"] = AttackStackCount;
+
+                Infoprint(va(
+                    "StartAttack: attack Hero consumable TemplateId=%u SlotIndex=%u InventoryStackCount=%u AttackStackCount=%u.",
+                    TemplateId,
+                    EquippedItem["SlotIndex"].is_number()
+                        ? EquippedItem["SlotIndex"].get<uint32_t>()
+                        : 0,
+                    InventoryStackCount,
+                    AttackStackCount));
+            }
+
+            break;
+        }
+    }
+}
+
+void ConsumeUsedAttackConsumables(
+    const MQEL_json &EndAttackParams)
+{
+    if (CurrentattackConsumablesProcessed)
+    {
+        Infoprint(
+            "EndAttack consumables: usage already processed for this attack.");
+        return;
+    }
+
+    const auto UsedIt =
+        EndAttackParams.find("ConsumableUsed");
+
+    if (UsedIt == EndAttackParams.end() ||
+        !UsedIt->is_array() ||
+        UsedIt->empty())
+    {
+        Infoprint(
+            "EndAttack consumables: no ConsumableUsed entries to deduct.");
+        return;
+    }
+
+    uint32_t UseCount = 0;
+
+    for (const auto &UsedEntry : *UsedIt)
+    {
+        if (UsedEntry.is_number_integer() &&
+            UsedEntry.get<int64_t>() > 0)
+        {
+            ++UseCount;
+        }
+    }
+
+    if (UseCount == 0)
+    {
+        Infoprint(
+            "EndAttack consumables: no valid usage entries.");
+        return;
+    }
+
+    std::vector<uint32_t> EquippedTemplateIds;
+
+    if (CurrentattackEquippedConsumables.is_array())
+    {
+        for (const auto &EquippedItem :
+             CurrentattackEquippedConsumables)
+        {
+            if (!EquippedItem.is_object() ||
+                !EquippedItem["TemplateId"].is_number_integer())
+            {
+                continue;
+            }
+
+            const uint32_t TemplateId =
+                EquippedItem["TemplateId"].get<uint32_t>();
+
+            if (TemplateId == 0)
+                continue;
+
+            bool AlreadyAdded = false;
+
+            for (const auto ExistingId : EquippedTemplateIds)
+            {
+                if (ExistingId == TemplateId)
+                {
+                    AlreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!AlreadyAdded)
+                EquippedTemplateIds.push_back(TemplateId);
+        }
+    }
+
+    if (EquippedTemplateIds.size() != 1)
+    {
+        Infoprint(va(
+            "EndAttack consumables: refusing to guess which item to deduct; used=%u distinctEquippedTemplateIds=%u.",
+            UseCount,
+            (unsigned)EquippedTemplateIds.size()));
+        return;
+    }
+
+    const uint32_t TemplateId =
+        EquippedTemplateIds.front();
+
+    CurrentattackConsumablesProcessed = true;
+
+    const uint32_t Deducted =
+        Backend::Inventory::Consumeconsumable(
+            TemplateId,
+            UseCount);
+
+    Infoprint(va(
+        "EndAttack consumables: TemplateId=%u reportedUses=%u deducted=%u.",
+        TemplateId,
+        UseCount,
+        Deducted));
 }
 
 MQEL_json GetDefenderconsumables()
@@ -275,6 +714,19 @@ void StartAttack(
     std::string Body)
 {
     auto Parsed = MQEL_json::parse(Body);
+
+    CurrentattackInitialGold =
+        Backend::Wallet::Getamount(eCurrencytype::IGC);
+
+    const auto HeroAtStart =
+        Backend::Hero::Serialize();
+
+    CurrentattackInitialXP =
+        HeroAtStart["XP"].is_number()
+            ? HeroAtStart["XP"].get<uint32_t>()
+            : 0;
+
+    CurrentattackCreatureLoot = MQEL_json::array();
 
     Infoprint(
         va(
@@ -373,8 +825,7 @@ void StartAttack(
      tutorial reward responses.
  */
     const bool ActualTutorialCastle =
-        RequestedCastleAccountId == TutorialCastleID ||
-        RequestedCastleAccountId == BewarewichCastleID;
+        RequestedCastleAccountId == TutorialCastleID;
 
     /*
         Ordinary local PVE castles use the Bewarewich-compatible
@@ -549,8 +1000,12 @@ void StartAttack(
                 CastleAccountId,
                 Castletype);
 
+        /*
+            Preserve the compatibility response and actual castle data,
+            but do not activate the tutorial UI for a regular PVE castle.
+        */
         Response["Result"]["Castle"]["IsTutorialCastle"] =
-            true;
+            false;
     }
     else if (Tutorial &&
              Attacktype == eAttacktype::None)
@@ -654,14 +1109,42 @@ void StartAttack(
         va(
             "Castle payload size=%u",
             (unsigned)Response["Result"]["Castle"].dump().size()));
-    Response["Result"]["Hero"] =
+    // Build the raid-specific Hero snapshot and attach owned stack counts to
+    // equipped consumables. Keep Backend::Hero::Serialize() unchanged because
+    // the extra StackCount belongs to the transient combat model, not the save.
+    const MQEL_json InventoryConsumablesInfo =
+        GetAttackerconsumables();
+
+    MQEL_json AttackHero =
         Backend::Hero::Serialize();
+
+    AttachInventoryCountsToAttackHero(
+        AttackHero,
+        InventoryConsumablesInfo);
+
+    CurrentattackEquippedConsumables =
+        AttackHero["EquippedConsumables"].is_array()
+            ? AttackHero["EquippedConsumables"]
+            : MQEL_json::array();
+    CurrentattackConsumablesProcessed = false;
+
+    Response["Result"]["Hero"] =
+        std::move(AttackHero);
 
     Response["Result"]["AttackerDisplayName"] =
         "CatCastleMiau";
 
+    CurrentattackCreatureLoot =
+        GetCreaturelootForCastle(Response["Result"]["Castle"]);
+
     Response["Result"]["CreatureLoot"] =
-        GetCreatureloot();
+        CurrentattackCreatureLoot;
+
+    Infoprint(
+        va(
+            "StartAttack: advertised %u creature loot entries for castle AccountId=%llu.",
+            (unsigned)CurrentattackCreatureLoot.size(),
+            (unsigned long long)CurrentattackCastleID));
 
     Response["Result"]["TrapLoot"] =
         GetTraploot();
@@ -691,9 +1174,11 @@ void StartAttack(
     Response["Result"]["FreeInventorySlotsCount"] =
         42;
 
-    if (!Tutorial)
-        Response["Result"]["InventoryConsumablesInfo"] =
-            GetAttackerconsumables();
+    // Every attack type must receive the attacker's consumable inventory.
+    // Tutorial and Dread Knight quest attacks also need this data so
+    // the combat system can determine whether equipped potions are available.
+    Response["Result"]["InventoryConsumablesInfo"] =
+        InventoryConsumablesInfo;
 
     if (!Tutorial)
         Response["Result"]["DefenderActiveConsumables"] =
@@ -709,9 +1194,13 @@ void StartAttack(
         Response["Result"]["StealableMines"] =
             GetMines();
 
-    if (Tutorial)
+    if (Tutorial &&
+        !PVECompatibilityCastle &&
+        !DreadKnightQuestAttack)
+    {
         Response["Result"]["IsTutorial"] =
             true;
+    }
 
     Response["Result"]["TreasureRoomGoldRatio"] =
         0.3;
@@ -740,11 +1229,11 @@ void ApplyCollectedAttackLoot(
     MQEL_json &Request,
     MQEL_json &Response)
 {
-    uint32_t Gold = 0;
-    uint32_t LifeForce = 0;
-
-    auto LootTable =
-        GetCreatureloot();
+    const auto LootTable =
+        CurrentattackCreatureLoot.is_array() &&
+                !CurrentattackCreatureLoot.empty()
+            ? CurrentattackCreatureLoot
+            : GetCreatureloot();
 
     auto CalculateLoot =
         [&Request, &LootTable](
@@ -753,34 +1242,35 @@ void ApplyCollectedAttackLoot(
     {
         uint32_t Total = 0;
 
-        if (Request[Field].is_null() ||
-            !Request[Field].is_array())
+        const auto FieldIt =
+            Request.find(Field);
+
+        if (FieldIt == Request.end() ||
+            !FieldIt->is_array())
         {
             return 0;
         }
-        for (auto &CreatureID : Request[Field])
+
+        for (const auto &CreatureID : *FieldIt)
         {
             if (!CreatureID.is_number_integer())
                 continue;
 
-            uint32_t ID =
+            const uint32_t ID =
                 CreatureID.get<uint32_t>();
 
-            bool Matched =
-                false;
-
-            for (auto &Loot : LootTable)
+            for (const auto &Loot : LootTable)
             {
-                if (Loot["Id"].is_null())
+                if (Loot["Id"].is_null() ||
+                    !Loot["Id"].is_number_integer())
+                {
                     continue;
+                }
 
                 if (Loot["Id"].get<uint32_t>() != ID)
                     continue;
 
-                Matched =
-                    true;
-
-                if (!Loot[RewardField].is_null())
+                if (Loot[RewardField].is_number())
                 {
                     Total +=
                         Loot[RewardField].get<uint32_t>();
@@ -792,60 +1282,162 @@ void ApplyCollectedAttackLoot(
                         Field,
                         ID,
                         RewardField,
-                        Loot[RewardField].is_null()
-                            ? 0
-                            : Loot[RewardField].get<uint32_t>()));
+                        Loot[RewardField].is_number()
+                            ? Loot[RewardField].get<uint32_t>()
+                            : 0));
 
                 break;
             }
-
-            if (!Matched)
-            {
-                Infoprint(
-                    va(
-                        "Loot lookup MISS: Field=%s CreatureId=%u.",
-                        Field,
-                        ID));
-            }
         }
+
         return Total;
     };
 
-    Gold =
+    /*
+        Keep creature rewards separate from chest rewards so the
+        results screen can display them correctly.
+    */
+    uint32_t CreatureGold =
         CalculateLoot(
             "LootedGoldCreatureIds",
             "Gold");
 
-    LifeForce =
+    uint32_t CreatureLifeForce =
         CalculateLoot(
             "LootedLifeForceCreatureIds",
             "LifeForce");
 
+    const uint32_t CreatureXP =
+        CalculateLoot(
+            "KilledCreatureIds",
+            "Xp");
+
+    // Work around the current client reporting empty pickup-ID lists.
+    // If it reports no creature currency, use the actual killed-creature IDs
+    // so a completed raid does not award only the treasure-room currency.
+    if (CreatureGold == 0)
+    {
+        CreatureGold =
+            CalculateLoot(
+                "KilledCreatureIds",
+                "Gold");
+    }
+
+    if (CreatureLifeForce == 0)
+    {
+        CreatureLifeForce =
+            CalculateLoot(
+                "KilledCreatureIds",
+                "LifeForce");
+    }
+
+    Response["Result"]["KillsXp"] =
+        CreatureXP;
+
+    /*
+        Only credit treasure-room values the client reported, and
+        clamp them to the amounts advertised by StartAttack.
+    */
+    auto ReadCappedAmount =
+        [&Request](
+            const char *Field,
+            uint32_t Maximum) -> uint32_t
+    {
+        const auto It =
+            Request.find(Field);
+
+        if (It == Request.end() ||
+            !It->is_number())
+        {
+            return 0;
+        }
+
+        const double Value =
+            It->get<double>();
+
+        if (Value <= 0.0)
+            return 0;
+
+        if (Value >= static_cast<double>(Maximum))
+            return Maximum;
+
+        return static_cast<uint32_t>(Value);
+    };
+
+    const uint32_t MaximumTreasureGold =
+        GetIGCreward()["Amount"].get<uint32_t>();
+
+    const uint32_t MaximumTreasureLifeForce =
+        GetLifereward()["Amount"].get<uint32_t>();
+
+    const uint32_t TreasureGold =
+        ReadCappedAmount(
+            "TreasureRoomLootedGold",
+            MaximumTreasureGold);
+
+    const uint32_t TreasureLifeForce =
+        ReadCappedAmount(
+            "TreasureRoomLootedLifeForce",
+            MaximumTreasureLifeForce);
+
+    const uint32_t TotalGold =
+        CreatureGold + TreasureGold;
+
+    const uint32_t TotalLifeForce =
+        CreatureLifeForce + TreasureLifeForce;
+
     Infoprint(
         va(
-            "EndAttack collected loot: Gold=%u LifeForce=%u",
-            Gold,
-            LifeForce));
+            "EndAttack loot breakdown: CreatureGold=%u TreasureGold=%u TotalGold=%u CreatureLifeForce=%u TreasureLifeForce=%u TotalLifeForce=%u.",
+            CreatureGold,
+            TreasureGold,
+            TotalGold,
+            CreatureLifeForce,
+            TreasureLifeForce,
+            TotalLifeForce));
 
-    if (Gold > 0)
+    /*
+        Persist the combined actual currency reward.
+    */
+    if (TotalGold > 0)
     {
         Backend::Wallet::Updateamount(
             eCurrencytype::IGC,
-            (int32_t)Gold);
+            static_cast<int32_t>(TotalGold));
     }
 
-    if (LifeForce > 0)
+    if (TotalLifeForce > 0)
     {
         Backend::Wallet::Updateamount(
             eCurrencytype::Lifeforce,
-            (int32_t)LifeForce);
+            static_cast<int32_t>(TotalLifeForce));
     }
 
-    Response["Result"]["CollectedGold"] =
-        Gold;
+    /*
+     Report the totals calculated in this function.
 
-    Response["Result"]["CollectedLifeForce"] =
-        LifeForce;
+     TotalGold and TotalLifeForce include the creature and
+     treasure-room portions. The Kills fields remain creature-only.
+    */
+
+    // Total values include creature loot plus treasure-room loot.
+    Response["Result"]["TotalGold"] =
+        TotalGold;
+
+    Response["Result"]["TotalLifeForce"] =
+        TotalLifeForce;
+
+    Response["Result"]["InitialGold"] =
+        CurrentattackInitialGold;
+
+    Response["Result"]["InitialXp"] =
+        CurrentattackInitialXP;
+
+    Response["Result"]["TreasureRoomGold"] =
+        TreasureGold;
+
+    Response["Result"]["TreasureRoomLifeForce"] =
+        TreasureLifeForce;
 }
 
 void EndAttack(
@@ -954,16 +1546,22 @@ void EndAttack(
     MQEL_json Parsed =
         MQEL_json::parse(CleanBody);
 
+    ConsumeUsedAttackConsumables(
+        Parsed["endAttackParams"]);
+
     MQEL_json Response;
 
     // Handle tutorial fights.
     if (CurrentattackID == TutorialAttackID1 &&
+        CurrentattackCastleID == TutorialCastleID &&
         !CurrentattackDreadKnightQuest)
     {
         Response = MQEL_json::parse(
             R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":33},{"CurrencyType":4,"Amount":33}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":60,"TotalXp":60,"Level":1,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":9,"PrimaryStatsModifiers":[0.354,0.998,0.021],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":37},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e719"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":8,"PrimaryStatsModifiers":[0.375,0.364,0.821],"IsSellable":true,"TemplateId":40},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71a"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":1,"ArchetypeId":2,"PrimaryStatsModifiers":[1,1,1],"IsSellable":true,"TemplateId":53},"ItemType":3,"ObjectId":"580d50cd5c98320a9cb0e71b"}],"NotificationType":111}],"Result":{"AttackId":"580d504f5c98320c1881325a","DefenderCastleId":2,"DefenderCastleType":1,"DefenderOasisNameId":2325,"Duration":119100,"InitialGold":1000,"HeroLevel":1,"TotalXp":60,"TotalGold":33,"TotalLifeForce":33,"KillsXp":60,"KillsGold":33,"KillsLifeForce":33,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsTutorial":true,"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":16,"AttackTotalIGCWon":33,"TotalCastlesLooted":1,"CastlesDefeated":{"Medium":1},"KilledCreatures":{"1081":12,"1029":3,"1003":1},"CurrencyAccumulation":{"IGC":33,"LifeForce":33},"DefeatCastleStrike":1,"TotalItemsLooted":3},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
     }
-    else if (CurrentattackID == TutorialAttackID2)
+    else if (CurrentattackID == TutorialAttackID2 &&
+             CurrentattackCastleID == TutorialCastleID &&
+             !CurrentattackDreadKnightQuest)
     {
         Response = MQEL_json::parse(
             R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":29}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":66,"TotalXp":1868,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f50727"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":2,"ArchetypeId":4,"PrimaryStatsModifiers":[0.566,0.342,0.122],"Effects":[{"Id":22,"Level":1}],"IsSellable":true,"TemplateId":17},"ItemType":3,"ObjectId":"58043d945c98320eb4f50728"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":8,"PrimaryStatsModifiers":[0.98,0.24,0.777],"IsSellable":true,"TemplateId":44},"ItemType":3,"ObjectId":"58043d945c98320eb4f50729","NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":4,"ArchetypeId":3,"PrimaryStatsModifiers":[0.938,0.568,0.491],"IsSellable":true,"TemplateId":205},"ItemType":3,"ObjectId":"58043d945c98320eb4f5072a"}],"NotificationType":111}],"Result":{"AttackId":"58043d5d5c98320c1881325a","DefenderCastleId":3000947,"DefenderAccountDisplayName":"jonsie111","Duration":49933,"InitialXp":1802,"InitialGold":2000,"HeroLevel":4,"TotalXp":66,"TotalGold":103,"TotalLifeForce":29,"TreasureRoomGold":7,"PillagedIGCMinesAmount":67,"PillagedIGCMineCount":1,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":50},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":202,"AttackTotalIGCWon":833,"TotalCastlesLooted":10,"CastlesDefeated":{"Medium":5,"Easy":4,"Hard":1},"KilledCreatures":{"1081":86,"1029":7,"1003":2,"1000":21,"1006":3,"1023":4,"1079":8,"1155":1,"1001":24,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":4,"TotalPotionsConsumed":5},"TrophyScoreVariation":{},"VictoryConditionLevel":3,"DefenderLossIGC":7,"EnterTreasureRoom":true,"CastleShieldedByAttacker":true,"CastleValidationDuration":44233,"LastComment":{"AttackId":"580238555c98321778c363ba","AccountId":3140910,"Comment":{"Raw":"for beginners..."},"AvatarId":10}})");
@@ -972,6 +1570,35 @@ void EndAttack(
     {
         Response = MQEL_json::parse(
             R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":165}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveCompletedNotification, HyperQuest.GameServer.Contracts","ObjectiveId":302,"NotificationType":14},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507be"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bf"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f507c0"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveUnlockedNotification, HyperQuest.GameServer.Contracts","AccountObjective":{"ObjectiveId":303,"LastStatusDate":"2016-10-17T02:58:42Z","Status":1},"NotificationType":17}],"Result":{"AttackId":"58043dab5c98320eb4f50743","DefenderCastleId":101,"DefenderAccountDisplayName":"Fendrick's Farm","DefenderOasisNameId":16659,"Duration":172600,"InitialGold":2000,"HeroLevel":4,"TotalXp":333,"TotalGold":179,"TotalLifeForce":165,"KillsXp":333,"KillsGold":133,"KillsLifeForce":119,"TreasureRoomGold":46,"TreasureRoomLifeForce":46,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":75},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":243,"AttackTotalIGCWon":1012,"TotalCastlesLooted":11,"CastlesDefeated":{"Medium":5,"Easy":5,"Hard":1},"KilledCreatures":{"1081":103,"1029":7,"1003":5,"1000":24,"1006":3,"1079":8,"1155":1,"1001":26,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":5,"TotalPotionsConsumed":5,"TotalItemsLooted":33},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
+    }
+
+    // Exit/Escape requests must not reuse the generic successful-attack
+    // response's EnterTreasureRoom=true flag.
+    const auto CompletionTypeIt =
+        Parsed["endAttackParams"].find("CompletionType");
+
+    if (CompletionTypeIt != Parsed["endAttackParams"].end() &&
+        CompletionTypeIt->is_number_integer())
+    {
+        const uint32_t CompletionType =
+            CompletionTypeIt->get<uint32_t>();
+
+        // AttackCompletionType: Exit=2, Escape=3.
+        if (CompletionType == 2 || CompletionType == 3)
+        {
+            Response["Result"]["EnterTreasureRoom"] = false;
+
+            // The static successful-attack template also reports a victory.
+            // An Exit/Escape is not a victory, so clear those stale fields too.
+            // VictoryConditionType::None is enum value 0 in the client model.
+            Response["Result"]["VictoryConditionType"] = 0;
+            Response["Result"]["VictoryConditionLevel"] = 0;
+            Response["Result"]["MaxVictoryConditionLevel"] = 0;
+
+            Infoprint(va(
+                "EndAttack: CompletionType=%u; clearing treasure-room and victory fields for exit/escape.",
+                CompletionType));
+        }
     }
 
     /*
@@ -1157,61 +1784,82 @@ void EndAttack(
     }
 
     /*
-        Calculate and persist the actual loot collected by the client.
+    Calculate and persist the actual loot collected by the client.
     */
     ApplyCollectedAttackLoot(
         Parsed["endAttackParams"],
         Response);
-    uint32_t CollectedGold = 0;
-    uint32_t CollectedLifeForce = 0;
 
-    if (!Response["Result"]["CollectedGold"].is_null())
-    {
-        CollectedGold =
-            Response["Result"]["CollectedGold"].get<uint32_t>();
-    }
+    const uint32_t CollectedGold =
+        Response["Result"]["TotalGold"].is_number()
+            ? Response["Result"]["TotalGold"].get<uint32_t>()
+            : 0;
 
-    if (!Response["Result"]["CollectedLifeForce"].is_null())
-    {
-        CollectedLifeForce =
-            Response["Result"]["CollectedLifeForce"].get<uint32_t>();
-    }
+    const uint32_t CollectedLifeForce =
+        Response["Result"]["TotalLifeForce"].is_number()
+            ? Response["Result"]["TotalLifeForce"].get<uint32_t>()
+            : 0;
 
     /*
-        Keep the currency notification synchronized with the actual
-        currency collected during this attack.
+        Replace the combined currency event with one event per
+        currency, matching Backend::Wallet::NotifyWalletamountupdate().
     */
-    if (Response["Notifications"].is_array() &&
-        !Response["Notifications"].empty())
+    const std::string WalletNotificationType =
+        "HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts";
+
+    if (!Response["Notifications"].is_array())
     {
-        auto &CurrencyNotification =
-            Response["Notifications"][0];
-
-        if (CurrencyNotification["Amounts"].is_array())
-        {
-            for (auto &Amount : CurrencyNotification["Amounts"])
-            {
-                if (Amount["CurrencyType"].is_null())
-                    continue;
-
-                const uint32_t CurrencyType =
-                    Amount["CurrencyType"].get<uint32_t>();
-
-                if (CurrencyType ==
-                    (uint32_t)eCurrencytype::IGC)
-                {
-                    Amount["Amount"] =
-                        CollectedGold;
-                }
-                else if (CurrencyType ==
-                         (uint32_t)eCurrencytype::Lifeforce)
-                {
-                    Amount["Amount"] =
-                        CollectedLifeForce;
-                }
-            }
-        }
+        Response["Notifications"] = MQEL_json::array();
     }
+
+    // Remove the old combined wallet notification(s).
+    for (size_t Index = Response["Notifications"].size();
+         Index > 0;
+         --Index)
+    {
+        const auto &Notification =
+            Response["Notifications"][Index - 1];
+
+        if (Notification["$type"].is_null() ||
+            !Notification["$type"].is_string())
+        {
+            continue;
+        }
+
+        if (Notification["$type"].get<std::string>() !=
+            WalletNotificationType)
+        {
+            continue;
+        }
+
+        Response["Notifications"].erase(
+            Response["Notifications"].begin() + (Index - 1));
+    }
+
+    // Emit one absolute-balance notification for each currency.
+    auto AddWalletNotification =
+        [&Response, &WalletNotificationType](eCurrencytype Currency)
+    {
+        MQEL_json Notification =
+            MQEL_json::object();
+
+        Notification["$type"] =
+            WalletNotificationType;
+
+        Notification["Amounts"] =
+            MQEL_json::array();
+
+        Notification["Amounts"].push_back(
+            Backend::Wallet::Serialize(Currency));
+
+        Notification["NotificationType"] = 24;
+
+        Response["Notifications"].push_back(
+            Notification);
+    };
+
+    AddWalletNotification(eCurrencytype::IGC);
+    AddWalletNotification(eCurrencytype::Lifeforce);
 
     Fixclassloot(Response);
 
@@ -1236,21 +1884,25 @@ void EndAttack(
 
     uint32_t XPReward = 0;
 
-    if (CurrentattackID == TutorialAttackID1 &&
+    // Preserve the existing rewards for the two real tutorial attacks.
+    if (CurrentattackCastleID == TutorialCastleID &&
+        CurrentattackID == TutorialAttackID1 &&
         !CurrentattackDreadKnightQuest)
     {
         XPReward = 60;
     }
-    else if (CurrentattackID == TutorialAttackID2 &&
+    else if (CurrentattackCastleID == TutorialCastleID &&
+             CurrentattackID == TutorialAttackID2 &&
              !CurrentattackDreadKnightQuest)
     {
         XPReward = 66;
     }
-    else
+    else if (Response["Result"]["KillsXp"].is_number())
     {
-        XPReward = 333;
+        // Regular PvE raids use the XP calculated from the killed creatures.
+        XPReward =
+            Response["Result"]["KillsXp"].get<uint32_t>();
     }
-
     auto HeroState =
         Backend::Hero::Serialize();
 
@@ -1278,8 +1930,16 @@ void EndAttack(
     auto UpdatedHero =
         Backend::Hero::Serialize();
 
+    // Result.TotalXp is XP GAINED during this raid.
+    // The notification below still carries the hero's lifetime XP.
+    Response["Result"]["InitialXp"] =
+        CurrentattackInitialXP;
+
     Response["Result"]["TotalXp"] =
-        UpdatedHero["XP"];
+        XPReward;
+
+    Response["Result"]["KillsXp"] =
+        XPReward;
 
     Response["Result"]["HeroLevel"] =
         UpdatedHero["Level"];
@@ -1298,6 +1958,12 @@ void EndAttack(
             if (Type.find("HeroXpChangedNotification") ==
                 std::string::npos)
                 continue;
+
+            // Ensure the XP notification targets the actual active hero.
+            Notification["HeroSpecContainerId"] =
+                UpdatedHero["HeroSpecContainerId"].is_number()
+                    ? UpdatedHero["HeroSpecContainerId"].get<uint32_t>()
+                    : (uint32_t)Backend::Hero::Getheroclass();
 
             Notification["XpAdded"] =
                 XPReward;

@@ -73,6 +73,11 @@ namespace Backend
         // Add a purchased item directly to inventory.
         void Addpurchased(MQEL_json Item, int Slot);
 
+        // Deduct consumable uses and persist inventory.
+        uint32_t Consumeconsumable(
+            uint32_t TemplateId,
+            uint32_t Count);
+
         // Move an inventory item to another slot.
         bool Swap(int SourceSlot, int DestinationSlot);
 
@@ -120,8 +125,11 @@ namespace Backend
         // Modify the characters equipment.Wh
         template <typename T = int, typename C = int>
         void Equipgear(T Slot, Equipment_t Item, C Class = Getheroclass());
+
         template <typename C = int>
         void Equipspell(Spell_t Spell, C Class = Getheroclass());
+
+        void Equipconsumable(Consumable_t Item, int Class);
     }
 
     // Castle matchmaking.

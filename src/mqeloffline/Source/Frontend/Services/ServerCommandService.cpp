@@ -7,6 +7,7 @@
 */
 
 #include "../../Stdinclude.hpp"
+#include "../../Backend/HeroItemCatalog.hpp"
 
 // Statistics / telemetry.
 void Handletracking(Request_t Request)
@@ -166,166 +167,145 @@ void Handleitembuy(Request_t Request)
         0);
 
     /*
-        These are the hero-equipment SKUs observed from the real client.
-
-        SKU     TemplateId  ArchetypeId  ItemLevel
-        11353   22101       5            1
-        13130   64131       7            3
-        13140   64141       7            3
-        13150   64151       7            3
-        13160   64161       7            3
-        13170   64171       7            3
-        13100   64101       6            3   Charmed Ox Crossbow
-        13400   64101       6            3   Charmed Ox Crossbow
+        Step 1: Resolve the SKU before charging anything.
     */
+    const auto *Sku =
+        Backend::HeroItemCatalog::FindSku(
+            SKUCode);
 
-    uint32_t TemplateId = 0;
-    uint32_t ArchetypeId = 0;
-    uint32_t ItemLevel = 0;
-    bool IsCharmedOx = false;
-
-    if (SKUCode == "11353")
-    {
-        TemplateId = 22101;
-        ArchetypeId = 5;
-        ItemLevel = 1;
-    }
-    else if (SKUCode == "13130")
-    {
-        TemplateId = 64131;
-        ArchetypeId = 7;
-        ItemLevel = 3;
-    }
-    else if (SKUCode == "13140")
-    {
-        TemplateId = 64141;
-        ArchetypeId = 7;
-        ItemLevel = 3;
-    }
-    else if (SKUCode == "13150")
-    {
-        TemplateId = 64151;
-        ArchetypeId = 7;
-        ItemLevel = 3;
-    }
-    else if (SKUCode == "13160")
-    {
-        TemplateId = 64161;
-        ArchetypeId = 7;
-        ItemLevel = 3;
-    }
-    else if (SKUCode == "13170")
-    {
-        TemplateId = 64171;
-        ArchetypeId = 7;
-        ItemLevel = 3;
-    }
-    else if (SKUCode == "13100" || SKUCode == "13400")
-    {
-        /*
-            Charmed Ox Crossbow.
-
-            Real client shop data:
-                13100 -> 64101 for 245 Gold
-                13400 -> 64101 for 40 Premium Cash
-        */
-        TemplateId = 64101;
-        ArchetypeId = 6;
-        ItemLevel = 3;
-        IsCharmedOx = true;
-    }
-    else
+    if (Sku == nullptr)
     {
         Infoprint(va(
-            "BuyHeroItemCommand: unsupported hero-item SKU %s. "
-            "No inventory item created and no currency deducted.",
+            "BuyHeroItemCommand: SKU %s was not found in the catalog. No currency charged.",
             SKUCode.c_str()));
 
         return;
     }
 
-    // Subtract the purchase price only after we know the SKU is supported.
+    /*
+        ItemType 3 denotes the hero-item purchases handled here.
+        Other SKU types must use their own purchase handlers.
+    */
+    const uint32_t ItemType =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemType");
+
+    if (ItemType != 3)
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: SKU %s has unsupported ItemType %u. No currency charged.",
+            SKUCode.c_str(),
+            ItemType));
+
+        return;
+    }
+
+    auto Active = Sku->find("IsActive");
+
+    if (Active != Sku->end() &&
+        Active->is_boolean() &&
+        !Active->get<bool>())
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: SKU %s is inactive. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Step 2: Resolve the real template from the SKU.
+    */
+    const uint32_t TemplateId =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemId");
+
+    const auto *Template =
+        Backend::HeroItemCatalog::FindTemplate(
+            TemplateId);
+
+    if (Template == nullptr)
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: SKU %s references missing TemplateId %u. No currency charged.",
+            SKUCode.c_str(),
+            TemplateId));
+
+        return;
+    }
+
+    /*
+        All current hero-equipment SKUs represent one item.
+        A missing ItemCount in the source data defaults to one.
+    */
+    const uint32_t ItemCount =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemCount",
+            1);
+
+    if (ItemCount != 1)
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: SKU %s has unsupported ItemCount %u. No currency charged.",
+            SKUCode.c_str(),
+            ItemCount));
+
+        return;
+    }
+
+    /*
+        Step 3: Construct the instance using catalog data.
+        This happens before deducting currency.
+    */
+    MQEL_json Item =
+        Backend::HeroItemCatalog::CreateEquipmentInstance(
+            SKUCode,
+            *Sku,
+            *Template);
+
+    if (!Item.is_object() ||
+        Item["ObjectId"].is_null() ||
+        Item["TemplateId"].is_null())
+    {
+        Infoprint(va(
+            "BuyHeroItemCommand: failed to create item for SKU %s. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Step 4: Preserve the existing wallet behavior.
+        The catalog checks above happen before the deduction.
+    */
     Backend::Wallet::Updateamount(
         (eCurrencytype)Currencytype,
         Currencyamount * -1);
 
-    MQEL_json Item =
-        MQEL_json::object();
-
-    Item["$type"] =
-        "HyperQuest.GameServer.Contracts.HeroEquipmentItem, HyperQuest.GameServer.Contracts";
-
-    Item["Type"] =
-        "HeroEquipmentItem";
-
-    Item["ItemLevel"] =
-        ItemLevel;
-
-    Item["ArchetypeId"] =
-        ArchetypeId;
-
     /*
-        Keep the existing deterministic modifier values until we have
-        captured the actual rolled PrimaryStatsModifiers for a real
-        Charmed Ox instance from the client.
-    */
-    Item["PrimaryStatsModifiers"] =
-        {0.4, 0.4, 0.4};
-
-    Item["IsSellable"] =
-        true;
-
-    Item["TemplateId"] =
-        TemplateId;
-
-    Item["DyeTemplateId"] =
-        0;
-
-    /*
-        The Charmed Ox is a named item with its two known static effects.
-    */
-    if (IsCharmedOx)
-    {
-        Item["Effects"] =
-            MQEL_json::array(
-                {
-                    MQEL_json{
-                        {"Id", 30}
-                    },
-                    MQEL_json{
-                        {"Id", 38}
-                    }
-                });
-
-        Infoprint(
-            va(
-                "Charmed Ox payload: %s",
-                Item.dump().c_str()));
-    }
-
-    Item["ObjectId"] =
-        va(
-            "purchased-%u",
-            (unsigned)std::chrono::high_resolution_clock::now()
-                .time_since_epoch()
-                .count());
-
-    /*
-        Addpurchased() stores the object with the exact inventory slot
-        the client supplied, then persists Inventory.json into the
-        MQELOffline.Localnet package.
+        Step 5: Use the existing persistence system.
+        Inventory.json and Addpurchased() remain unchanged.
     */
     Backend::Inventory::Addpurchased(
         Item,
         Slot);
 
     Infoprint(va(
-        "Purchased SKU %s -> TemplateId %u ArchetypeId %u ItemLevel %u at inventory slot %i.",
+        "Purchased SKU %s -> TemplateId %u ArchetypeId %u ItemLevel %u Slot %i.",
         SKUCode.c_str(),
         (unsigned)TemplateId,
-        (unsigned)ArchetypeId,
-        (unsigned)ItemLevel,
+        Backend::HeroItemCatalog::GetUInt(
+            *Template,
+            "ArchetypeId"),
+        (unsigned)Item["ItemLevel"].get<uint32_t>(),
         Slot));
+
+    Infoprint(va(
+        "Purchased item JSON: %s",
+        Item.dump().c_str()));
 }
 
 void Handleconsumable(Request_t Request)
@@ -338,10 +318,6 @@ void Handleconsumable(Request_t Request)
         "ConsumedHeroInventory",
         Message_t());
 
-    auto Discounted = Request.Get(
-        "DiscountApplied",
-        false);
-
     auto Slots = Request.Get(
         "SlotIndexes",
         Message_t());
@@ -350,65 +326,206 @@ void Handleconsumable(Request_t Request)
         "ClientPrice",
         Message_t());
 
-    auto Currencytype = Price.Get(
+    const auto Currencytype = Price.Get(
         "CurrencyType",
         0);
 
-    auto Currencyamount = Price.Get(
+    const auto Currencyamount = Price.Get(
         "Amount",
         0);
 
-    auto SKUCode = Request.Get(
+    const auto SKUCode = Request.Get(
         "SkuCode",
         "");
 
-    // Subtract the price from our wallet.
+    /*
+        Step 1: Resolve the SKU using the existing item catalog.
+        Reject unknown or unsupported items before charging currency.
+    */
+    const auto *Sku =
+        Backend::HeroItemCatalog::FindSku(SKUCode);
+
+    if (Sku == nullptr)
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s was not found. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    const uint32_t ItemType =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemType");
+
+    if (ItemType != 4)
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s is not a consumable (ItemType=%u). No currency charged.",
+            SKUCode.c_str(),
+            ItemType));
+
+        return;
+    }
+
+    auto Active = Sku->find("IsActive");
+
+    if (Active != Sku->end() &&
+        Active->is_boolean() &&
+        !Active->get<bool>())
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s is inactive. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Step 2: Read the actual consumable template and stack size.
+        SKU 16023 is catalogued as TemplateId 1, ItemCount 5.
+    */
+    const uint32_t TemplateId =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemId");
+
+    const uint32_t ItemCount =
+        Backend::HeroItemCatalog::GetUInt(
+            *Sku,
+            "ItemCount",
+            1);
+
+    if (TemplateId == 0 ||
+        ItemCount == 0 ||
+        Currencyamount < 0)
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s has invalid item, count, or price data. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Crafting and consumed-inventory purchases are not implemented.
+        Refuse these variants rather than charging for an incomplete
+        purchase.
+    */
+    if (!Materials.toJSON().empty() ||
+        !Consumed.toJSON().empty())
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s requires crafting or consumed inventory, which is not implemented. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Step 3: Read the destination inventory slot.
+        The captured request uses SlotIndexes: {"0": 5}.
+    */
+    int Slot = -1;
+
+    const auto SlotJSON = Slots.toJSON();
+
+    if (SlotJSON.is_object())
+    {
+        for (auto Iterator = SlotJSON.begin();
+             Iterator != SlotJSON.end();
+             ++Iterator)
+        {
+            if (Iterator.value().is_number_integer())
+            {
+                Slot = Iterator.value().get<int>();
+                break;
+            }
+        }
+    }
+    else if (SlotJSON.is_array() &&
+             !SlotJSON.empty() &&
+             SlotJSON[0].is_number_integer())
+    {
+        Slot = SlotJSON[0].get<int>();
+    }
+    else if (SlotJSON.is_number_integer())
+    {
+        Slot = SlotJSON.get<int>();
+    }
+
+    if (Slot < 0)
+    {
+        Infoprint(va(
+            "BuyConsumableCommand: SKU %s has no valid destination slot. No currency charged.",
+            SKUCode.c_str()));
+
+        return;
+    }
+
+    /*
+        Step 4: Create the inventory item in the format used by
+        the existing consumable inventory code.
+    */
+    MQEL_json Item = MQEL_json::object();
+
+    Item["$type"] =
+        "HyperQuest.GameServer.Contracts.HeroConsumableItem, HyperQuest.GameServer.Contracts";
+
+    Item["TemplateId"] = TemplateId;
+    Item["StackCount"] = ItemCount;
+
+    /*
+        Give each purchased item its own ObjectId so the persistence
+        layer can save and identify it.
+    */
+    static std::atomic<uint64_t> NextConsumableObjectId{0};
+
+    const auto Timestamp =
+        std::chrono::high_resolution_clock::now()
+            .time_since_epoch()
+            .count();
+
+    const uint64_t Sequence =
+        ++NextConsumableObjectId;
+
+    Item["ObjectId"] =
+        "purchased-consumable-" +
+        SKUCode + "-" +
+        std::to_string(Timestamp) + "-" +
+        std::to_string(Sequence);
+
+    /*
+        Step 5: Preserve the existing currency deduction and save
+        the purchased item through the persistent inventory system.
+    */
     Backend::Wallet::Updateamount(
         (eCurrencytype)Currencytype,
         Currencyamount * -1);
 
+    Backend::Inventory::Addpurchased(
+        Item,
+        Slot);
+
     Infoprint(va(
-        "Bought consumable %s for %i %s.",
+        "Purchased consumable SKU %s: TemplateId=%u StackCount=%u Slot=%i.",
         SKUCode.c_str(),
-        Currencyamount,
-        [&Currencytype]()
-        {
-            switch ((eCurrencytype)Currencytype)
-            {
-            case eCurrencytype::PremiumCash:
-                return "Premium-cash";
+        TemplateId,
+        ItemCount,
+        Slot));
 
-            case eCurrencytype::Lifeforce:
-                return "Lifeforce";
-
-            case eCurrencytype::IGC:
-                return "Gold";
-
-            default:
-                return "???";
-            }
-        }()));
-
-    /*
-        TODO(Convery):
-        Implement some type of inventory system.
-    */
+    Infoprint(va(
+        "Purchased consumable JSON: %s",
+        Item.dump().c_str()));
 }
 
 // Hero modification.
 void Handleequipment(Request_t Request)
 {
-    auto DSTSlot = Request.Get(
-        "DestinationSlot",
-        0);
-
-    auto SRCSlot = Request.Get(
-        "SourceSlotId",
-        0);
-
-    auto HeroID = Request.Get(
-        "HeroId",
-        0);
+    auto DSTSlot = Request.Get("DestinationSlot", 0);
+    auto SRCSlot = Request.Get("SourceSlotId", 0);
+    auto HeroID = Request.Get("HeroId", 0);
 
     const char *HeroName = [&HeroID]() -> const char *
     {
@@ -416,16 +533,12 @@ void Handleequipment(Request_t Request)
         {
         case eHerotype::Archer:
             return "Archer";
-
         case eHerotype::Knight:
             return "Knight";
-
         case eHerotype::Mage:
             return "Mage";
-
         case eHerotype::Runaway:
             return "Runaway";
-
         default:
             return "???";
         }
@@ -433,21 +546,101 @@ void Handleequipment(Request_t Request)
 
     Infoprint(va(
         "HeroEquipmentEquipCommand: %s inventory slot %i -> equipment slot %i.",
-        HeroName,
-        SRCSlot,
-        DSTSlot));
+        HeroName, SRCSlot, DSTSlot));
 
-    if (!Backend::Inventory::Equip(
-            SRCSlot,
-            DSTSlot,
-            HeroID))
+    if (!Backend::Inventory::Equip(SRCSlot, DSTSlot, HeroID))
     {
         Infoprint(va(
             "HeroEquipmentEquipCommand failed: %s inventory slot %i -> equipment slot %i.",
-            HeroName,
-            SRCSlot,
-            DSTSlot));
+            HeroName, SRCSlot, DSTSlot));
     }
+}
+
+void Handleequipconsumable(Request_t Request)
+{
+    const int HeroID =
+        Request.Get("HeroId", Backend::Hero::Getheroclass());
+
+    const int EquippedSlotIndex =
+        Request.Get("EquippedSlotIndex", 0);
+
+    const int TemplateId =
+        Request.Get("TemplateId", 0);
+
+    if (HeroID < 0 ||
+        EquippedSlotIndex < 0 ||
+        TemplateId < 0)
+    {
+        Infoprint(
+            "HeroEquipConsumableCommand rejected invalid values.");
+        return;
+    }
+
+    if (TemplateId != 0)
+    {
+        const auto Inventory = Backend::Inventory::Serialize();
+        bool Found = false;
+
+        for (const auto &Entry : Inventory)
+        {
+            const auto EntryItem = Entry.find("Item");
+
+            if (EntryItem == Entry.end() ||
+                !EntryItem->is_object())
+            {
+                continue;
+            }
+
+            const auto &Item = *EntryItem;
+
+            const auto Template = Item.find("TemplateId");
+            const auto Type = Item.find("$type");
+
+            if (Template == Item.end() ||
+                !Template->is_number() ||
+                Template->get<uint32_t>() !=
+                    static_cast<uint32_t>(TemplateId))
+            {
+                continue;
+            }
+
+            if (Type == Item.end() ||
+                !Type->is_string() ||
+                Type->get<std::string>().find(
+                    "HeroConsumableItem") == std::string::npos)
+            {
+                continue;
+            }
+
+            uint32_t Count = 1;
+            const auto Stack = Item.find("StackCount");
+
+            if (Stack != Item.end() && Stack->is_number())
+            {
+                Count = Stack->get<uint32_t>();
+            }
+
+            if (Count > 0)
+            {
+                Found = true;
+                break;
+            }
+        }
+
+        if (!Found)
+        {
+            Infoprint(va(
+                "HeroEquipConsumableCommand rejected TemplateId=%i: no owned consumable stack found.",
+                TemplateId));
+            return;
+        }
+    }
+
+    Backend::Hero::Equipconsumable(
+        Consumable_t(
+            static_cast<uint32_t>(TemplateId),
+            static_cast<uint32_t>(EquippedSlotIndex)),
+        HeroID);
 }
 
 void Handleinbox(Request_t Request)
@@ -601,9 +794,12 @@ void SendCommand(
             Handleconsumable(Item);
             break;
 
-        // Hero modification.
         case Hash::FNV1a_32("HeroEquipmentEquipCommand"):
             Handleequipment(Item);
+            break;
+
+        case Hash::FNV1a_32("HeroEquipConsumableCommand"):
+            Handleequipconsumable(Item);
             break;
 
         case Hash::FNV1a_32("InboxCollectToHeroInventoryCommand"):
@@ -634,9 +830,94 @@ void SendCommand(
         }
     }
 
+    /*
+    Send the authoritative wallet and XP state on every command poll.
+
+    Do not drain notification queues here. This sends only the current
+    saved values and cannot replay tutorial or quest notifications.
+*/
+    const int32_t CurrentGold =
+        Backend::Wallet::Getamount(eCurrencytype::IGC);
+
+    const int32_t CurrentLifeForce =
+        Backend::Wallet::Getamount(eCurrencytype::Lifeforce);
+
+    const auto HeroState =
+        Backend::Hero::Serialize();
+
+    const uint32_t CurrentXP =
+        HeroState["XP"].is_number()
+            ? HeroState["XP"].get<uint32_t>()
+            : 0;
+
+    const uint32_t CurrentLevel =
+        HeroState["Level"].is_number()
+            ? HeroState["Level"].get<uint32_t>()
+            : 1;
+
+    uint32_t HeroSpecContainerId =
+        (uint32_t)Backend::Hero::Getheroclass();
+
+    if (HeroState["HeroSpecContainerId"].is_number())
+    {
+        HeroSpecContainerId =
+            HeroState["HeroSpecContainerId"].get<uint32_t>();
+    }
+    MQEL_json Response =
+        MQEL_json::object();
+
+    Response["Notifications"] =
+        MQEL_json::array();
+
+    MQEL_json WalletNotification =
+        MQEL_json::object();
+
+    WalletNotification["$type"] =
+        "HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts";
+
+    WalletNotification["Amounts"] =
+        MQEL_json::array();
+
+    WalletNotification["Amounts"].push_back(
+        Backend::Wallet::Serialize(eCurrencytype::IGC));
+
+    WalletNotification["Amounts"].push_back(
+        Backend::Wallet::Serialize(eCurrencytype::Lifeforce));
+
+    WalletNotification["NotificationType"] = 24;
+
+    Response["Notifications"].push_back(
+        WalletNotification);
+
+    MQEL_json XPNotification =
+        MQEL_json::object();
+
+    XPNotification["$type"] =
+        "HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts";
+
+    XPNotification["HeroSpecContainerId"] =
+        HeroSpecContainerId;
+
+    // Synchronize current XP without awarding the reward again.
+    XPNotification["XpAdded"] = 0;
+    XPNotification["TotalXp"] = CurrentXP;
+    XPNotification["Level"] = CurrentLevel;
+    XPNotification["NotificationType"] = 43;
+
+    Response["Notifications"].push_back(
+        XPNotification);
+
+    Infoprint(
+        va(
+            "SendCommand global state snapshot: Gold=%d LifeForce=%d XP=%u Level=%u.",
+            CurrentGold,
+            CurrentLifeForce,
+            CurrentXP,
+            CurrentLevel));
+
     Sendreply(
         Server,
-        "{}");
+        Response.dump());
 }
 
 // Add the services to the gameserver on startup.

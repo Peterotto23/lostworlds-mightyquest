@@ -205,14 +205,25 @@ struct Equipment_t
 };
 struct Consumable_t
 {
-    uint32_t ID;
+    uint32_t ID = 0;
+    uint32_t Slot = 0;
 
-    MQEL_json Serialize()
+    Consumable_t() = default;
+
+    Consumable_t(
+        uint32_t TemplateId,
+        uint32_t SlotIndex = 0)
+        : ID(TemplateId),
+          Slot(SlotIndex)
+    {
+    }
+
+    MQEL_json Serialize() const
     {
         MQEL_json Object = MQEL_json::object();
 
-        /* TODO(Convery): RE the other properties. */
         Object["TemplateId"] = ID;
+        Object["SlotIndex"] = Slot;
 
         return Object;
     }

@@ -231,9 +231,26 @@ namespace Backend
                 }
                 if (!Object["EquippedConsumables"].is_null())
                 {
+                    Consumables.clear();
+
                     for (auto &Item : Object["EquippedConsumables"])
                     {
-                        Consumables.push_back({Item["TemplateId"]});
+                        if (!Item["TemplateId"].is_number())
+                        {
+                            continue;
+                        }
+
+                        const uint32_t TemplateId =
+                            Item["TemplateId"].get<uint32_t>();
+
+                        const uint32_t SlotIndex =
+                            Item["SlotIndex"].is_number()
+                                ? Item["SlotIndex"].get<uint32_t>()
+                                : 0;
+
+                        Consumables.emplace_back(
+                            TemplateId,
+                            SlotIndex);
                     }
                 }
 
@@ -421,10 +438,60 @@ namespace Backend
             Heroes[Class].Spells.push_back(Spell);
         }
 
-        template <>
-        void Equipspell(Spell_t Spell, eHerotype Class)
+        void Equipconsumable(Consumable_t Consumable, int Class)
         {
-            return Equipspell(Spell, (int)Class);
+            if (Class < 0 ||
+                static_cast<size_t>(Class) >= Heroes.size())
+            {
+                Infoprint(va(
+                    "Hero::Equipconsumable rejected invalid HeroId=%i.",
+                    Class));
+
+                return;
+            }
+
+            auto &TargetHero = Heroes[static_cast<size_t>(Class)];
+
+            if (TargetHero.Level == 0)
+            {
+                Infoprint(va(
+                    "Hero::Equipconsumable rejected uninitialized HeroId=%i.",
+                    Class));
+
+                return;
+            }
+
+            // Replace the item already occupying this equipped slot.
+            for (auto Iterator = TargetHero.Consumables.begin();
+                 Iterator != TargetHero.Consumables.end();)
+            {
+                if (Iterator->Slot == Consumable.Slot)
+                {
+                    Iterator = TargetHero.Consumables.erase(Iterator);
+                }
+                else
+                {
+                    ++Iterator;
+                }
+            }
+
+            // TemplateId 0 means the slot has been cleared.
+            if (Consumable.ID != 0)
+            {
+                TargetHero.Consumables.push_back(Consumable);
+            }
+
+            // Persist the equipped slot in Heroes.json.
+            Savehero();
+
+            const auto SavedHero = TargetHero.Serialize();
+
+            Infoprint(va(
+                "HeroEquipConsumableCommand saved HeroId=%i SlotIndex=%u TemplateId=%u EquippedConsumables=%s",
+                Class,
+                Consumable.Slot,
+                Consumable.ID,
+                SavedHero["EquippedConsumables"].dump().c_str()));
         }
 
         template <>
