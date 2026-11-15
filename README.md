@@ -55,7 +55,7 @@ New patch adds Beware Castle and level persistence still trying to get inventory
 
 ## What's missing
 
-Most responses are hardcoded or stubbed, Inventory persistence is class specific currently only Hunter has some items equippable, and progression is incomplete. The server logs unhandled calls to `bin\Plugins\Logs\MQELOffline.log` (`NO HANDLER for /X.hqs/Y`). Handlers live in `src/mqeloffline/Source/Frontend/Services/`.
+Inventory persistence is untested with classes other than hunter but most items should persist, castle progression is incomplete, and most castles are not yet available and are soft locked behind the Dread knight quest until I can implement said quest. 
 
 ## How it works
 
