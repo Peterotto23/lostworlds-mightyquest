@@ -1,0 +1,400 @@
+[I][05:26:10] Sendreply: final HTTP response length=502
+[I][05:26:10] Sendreply: sending response to server socket: 02C00E10
+[I][05:26:10] Sendreply: Server->Send returned.
+[I][05:26:10] DISPATCH Gameserver::onPOST /ServerCommandService.hqs/SendCommands BODYLEN=133 BODY={"commands":[{"$type":"HyperQuest.GameServer.Contracts.StartAssignmentCommand, HyperQuest.GameServer.Contracts","AssignmentId":150}]}
+[I][05:26:10]   HEADER Host: Gameserver
+[I][05:26:10]   HEADER Accept: */*
+[I][05:26:10]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:26:10]   HEADER t: ""
+[I][05:26:10]   HEADER n: 0
+[I][05:26:10]   HEADER sl: 0
+[I][05:26:10]   HEADER rnd: 1090813952
+[I][05:26:10]   HEADER i: 10
+[I][05:26:10]   HEADER h: 1100358331
+[I][05:26:10]   HEADER Content-Length: 133
+[I][05:26:10] ServerCommandService: received command "StartAssignmentCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.StartAssignmentCommand, HyperQuest.GameServer.Contracts",
+    "AssignmentId": 150
+}
+[I][05:26:10] Client started quest 150
+[I][05:26:10] SendCommand global state snapshot: Gold=4044 LifeForce=17101 XP=32217 Level=10.
+[I][05:26:10] Sendreply: input JSON length=411
+[I][05:26:10] Sendreply: input Notifications=2 GlobalNotifications=0
+[I][05:26:10] Sendreply: final payload length=411
+[I][05:26:10] Sendreply: final payload={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":4044},{"CurrencyType":4,"Amount":17101}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":0,"TotalXp":32217,"Level":10,"NotificationType":43}]}
+[I][05:26:10] Sendreply: final HTTP response length=502
+[I][05:26:10] Sendreply: sending response to server socket: 02C00E10
+[I][05:26:10] Sendreply: Server->Send returned.
+[I][05:26:11] DISPATCH Gameserver::onGET /AttackSelectionService.hqs/GetCastleInfo?attackSource=2&attackRegionId=1&castleId=3&castleType=1&attackType=5 BODYLEN=0 BODY=
+[I][05:26:11]   HEADER Host: Gameserver
+[I][05:26:11]   HEADER Accept: */*
+[I][05:26:11]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:26:11]   HEADER t: ""
+[I][05:26:11]   HEADER n: 0
+[I][05:26:11]   HEADER sl: 0
+[I][05:26:11]   HEADER rnd: 1075168320
+[I][05:26:11]   HEADER i: 11
+[I][05:26:11]   HEADER h: 1897046014
+[I][05:26:11] GetCastleInfo: requested castle AccountId=3.
+[I][05:26:11] PvPCastle: returning castle AccountId=3.
+[I][05:26:11] GetCastleInfo: returning AccountId=3 name=Bewarewich Castle level=1 rooms=7.
+[I][05:26:11] Sendreply: input JSON length=580
+[I][05:26:11] Sendreply: input Notifications=0 GlobalNotifications=0
+[I][05:26:11] Sendreply: final payload length=580
+[I][05:26:11] Sendreply: final payload={"Result":{"DefenderAccountSummary":{"Id":3,"DisplayName":"Bewarewich Castle","OasisNameId":16675,"AvatarId":10,"CastleLevel":1},"CastleType":1,"Level":1,"CastleHeartRank":1,"RoomCount":7,"CastleThemeId":26,"Difficulty":2,"PotentialLoot":{"Xp":90,"TreasureRoomStealableIGC":15,"TreasureRoomStealableLifeForce":15,"IGC":50,"LifeForce":50},"IsNew":true,"IsCastleAttackable":true,"AttackabilityStatus":1,"AttackType":5,"Stats":{"TotalConstructionPoints":58,"MaxConstructionPoints":58,"TrapCount":13,"WinRatio":0.5,"WinRatioDifficulty":2},"VictoryConditionRewardRatios":[1,0.75,0.5]}}
+[I][05:26:11] Sendreply: final HTTP response length=671
+[I][05:26:11] Sendreply: sending response to server socket: 02C00E10
+[I][05:26:11] Sendreply: Server->Send returned.
+[I][05:26:13] DISPATCH Gameserver::onPOST /AttackService.hqs/StartAttack BODYLEN=205 BODY={"castleAccountId":3,"castleType":1,"ubisoftCompetitionId":0,"attackSource":0,"attackType":5,"attackRegionId":1,"revengeAttackId":"","userSettings":{"MinHeroItemQualityToPickUp":0,"UseCameraDamping":true}}
+[I][05:26:13]   HEADER Host: Gameserver
+[I][05:26:13]   HEADER Accept: */*
+[I][05:26:13]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:26:13]   HEADER t: ""
+[I][05:26:13]   HEADER n: 0
+[I][05:26:13]   HEADER sl: 0
+[I][05:26:13]   HEADER rnd: 1359009024
+[I][05:26:13]   HEADER i: 12
+[I][05:26:13]   HEADER h: 1857752382
+[I][05:26:13]   HEADER Content-Length: 205
+[I][05:26:13] StartAttack Body: {"castleAccountId":3,"castleType":1,"ubisoftCompetitionId":0,"attackSource":0,"attackType":5,"attackRegionId":1,"revengeAttackId":"","userSettings":{"MinHeroItemQualityToPickUp":0,"UseCameraDamping":true}}
+[I][05:26:13] StartAttack: checking completed quests.
+[I][05:26:13] StartAttack: completed quests = [5006, 90, 26, 10, 20, 21, 30, 120, 5010, 5003, 5004, 100]
+[I][05:26:13] StartAttack: stored attack castle AccountId=3 CastleType=1.
+[I][05:26:13] StartAttack: using Bewarewich-compatible PVE response for AccountId=3 Level=1.
+[I][05:26:13] StartAttack: requested CastleAccountId=3 resolved CastleAccountId=3 Tutorial=true DreadKnightQuest=false.
+[I][05:26:13] Questing in a bot-castle from worldmap
+[I][05:26:13] PvPCastle: returning castle AccountId=3.
+[I][05:26:13] StartAttack CastleAccount=3 AttackType=5 Tutorial=true
+[I][05:26:13] StartAttack: compatibility Result.Level=1 for PVE AccountId=3.
+[I][05:26:13] Castle payload size=8091
+[I][05:26:13] AttackService: InventoryConsumablesInfo=[{"TemplateId":1,"StackCount":23}]
+[I][05:26:13] StartAttack: attack Hero consumable TemplateId=1 SlotIndex=0 InventoryStackCount=23 AttackStackCount=3.
+[I][05:26:13] StartAttack: advertised 27 creature loot entries for castle AccountId=3.
+[I][05:26:13] StartAttack: wrote full response to Plugins/Logs/StartAttack_3.json
+[I][05:26:13] Sendreply: input JSON length=12425
+[I][05:26:13] Sendreply: input Notifications=0 GlobalNotifications=0
+[I][05:26:13] Sendreply: final payload length=12425
+[I][05:26:13] Sendreply: final payload={"Result":{"AttackId":"6af9a4e5","Castle":{"$type":"HyperQuest.GameServer.Contracts.UbisoftCastle, HyperQuest.GameServer.Contracts","IsTutorialCastle":false,"OasisName":16675,"ForceCastleLevelOnBuildables":true,"CustomAttackerReward":{"DisableItemDrop":true},"AccountId":3,"AccountDisplayName":"Bewarewich Castle","LayoutId":1,"Rooms":[{"X":5,"Y":5,"Id":11,"SpecContainerId":22},{"Triggers":[{"SizeX":4,"SizeY":1,"RoomZoneId":1,"X":19,"Y":18,"Orientation":"Left","Id":5,"SpecContainerId":52},{"SizeX":20,"SizeY":6,"RoomZoneId":1,"X":5,"Y":18,"Orientation":"Left","Id":8,"SpecContainerId":52}],"Buildings":[{"Rank":1,"RoomZoneId":1,"Id":4,"SpecContainerId":1},{"Rank":1,"RoomZoneId":2,"Id":5,"SpecContainerId":3},{"Rank":1,"RoomZoneId":3,"Id":6,"SpecContainerId":4}],"X":5,"Y":1,"Orientation":"Right","Id":25,"SpecContainerId":27},{"Creatures":[{"RoomZoneId":1,"X":20,"Y":26,"Orientation":"Right","Id":6,"SpecContainerId":1000},{"RoomZoneId":1,"X":17,"Y":19,"Orientation":"Right","Id":10,"SpecContainerId":1000},{"RoomZoneId":1,"X":20,"Y":18,"Orientation":"Right","Id":7,"SpecContainerId":1000},{"RoomZoneId":1,"X":16,"Y":31,"Orientation":"Right","Id":9,"SpecContainerId":1000}],"Triggers":[{"SizeX":14,"SizeY":12,"RoomZoneId":1,"X":35,"Y":17,"Id":1,"SpecContainerId":52}],"Decorations":[{"RoomZoneId":1,"X":16,"Y":15,"Orientation":"Right","Id":8,"SpecContainerId":141},{"RoomZoneId":1,"X":25,"Y":22,"Orientation":"Right","Id":19,"SpecContainerId":149},{"RoomZoneId":1,"X":32,"Y":13,"Orientation":"Right","Id":20,"SpecContainerId":127}],"X":4,"Y":5,"Id":40,"SpecContainerId":7045},{"Creatures":[{"RoomZoneId":1,"X":16,"Y":5,"Orientation":"Right","Id":18,"SpecContainerId":1006},{"RoomZoneId":1,"X":20,"Y":5,"Orientation":"Right","Id":20,"SpecContainerId":1006},{"RoomZoneId":1,"X":17,"Y":28,"Orientation":"Right","Id":37,"SpecContainerId":1000},{"RoomZoneId":1,"X":14,"Y":28,"Id":42,"SpecContainerId":1000},{"RoomZoneId":1,"X":19,"Y":27,"Orientation":"Left","Id":43,"SpecContainerId":1000},{"RoomZoneId":1,"X"
+[I][05:26:13] Sendreply: final HTTP response length=12518
+[I][05:26:13] Sendreply: sending response to server socket: 02C00E10
+[I][05:26:13] Sendreply: Server->Send returned.
+[I][05:27:13] DISPATCH Gameserver::onPOST /ServerCommandService.hqs/SendCommands BODYLEN=463 BODY={"commands":[{"$type":"HyperQuest.GameServer.Contracts.TrackingCommand, HyperQuest.GameServer.Contracts","TrackingTag":{"$type":"HyperQuest.GameServer.Contracts.GameStateTracking, HyperQuest.GameServer.Contracts","GameStateId":2,"GameStateIdleTime":0,"GameStateTotalTime":0,"GameStateType":5,"NextGameStateType":2,"CreationDate":"","TrackingTagId":107}},{"$type":"HyperQuest.GameServer.Contracts.ClientIdleCommand, HyperQuest.GameServer.Contracts","IdleTime":0}]}
+[I][05:27:13]   HEADER Host: Gameserver
+[I][05:27:13]   HEADER Accept: */*
+[I][05:27:13]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:27:13]   HEADER t: ""
+[I][05:27:13]   HEADER n: 0
+[I][05:27:13]   HEADER sl: 0
+[I][05:27:13]   HEADER rnd: 1426179072
+[I][05:27:13]   HEADER i: 13
+[I][05:27:13]   HEADER h: 1689266516
+[I][05:27:13]   HEADER Content-Length: 463
+[I][05:27:13] ServerCommandService: received command "TrackingCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.TrackingCommand, HyperQuest.GameServer.Contracts",
+    "TrackingTag": {
+        "$type": "HyperQuest.GameServer.Contracts.GameStateTracking, HyperQuest.GameServer.Contracts",
+        "GameStateId": 2,
+        "GameStateIdleTime": 0,
+        "GameStateTotalTime": 0,
+        "GameStateType": 5,
+        "NextGameStateType": 2,
+        "CreationDate": "",
+        "TrackingTagId": 107
+    }
+}
+[I][05:27:13] Telemetry: Gamestate 2 updated
+[I][05:27:13] ServerCommandService: received command "ClientIdleCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.ClientIdleCommand, HyperQuest.GameServer.Contracts",
+    "IdleTime": 0
+}
+[I][05:27:13] Telemetry: Client was idle for 0 seconds.
+[I][05:27:13] SendCommand global state snapshot: Gold=4044 LifeForce=17101 XP=32217 Level=10.
+[I][05:27:13] Sendreply: input JSON length=411
+[I][05:27:13] Sendreply: input Notifications=2 GlobalNotifications=0
+[I][05:27:13] Sendreply: final payload length=411
+[I][05:27:13] Sendreply: final payload={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":4044},{"CurrencyType":4,"Amount":17101}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":0,"TotalXp":32217,"Level":10,"NotificationType":43}]}
+[I][05:27:13] Sendreply: final HTTP response length=502
+[I][05:27:13] Sendreply: sending response to server socket: 02C00E10
+[I][05:27:13] Sendreply: Server->Send returned.
+[I][05:27:31] DISPATCH Gameserver::onPOST /AttackService.hqs/EndAttack BODYLEN=9789 BODY={"endAttackParams":{"AttackFrameCount":2276,"AttackFrameDuration":0.03333333,"CastleRating":0,"Cheated":false,"CollectedTrapIds":[],"CompletionType":0,"ConsumableUsed":[20],"DeactivatedTrapIds":[],"DeathDetails":[],"DestroyedDecorationIds":[81,94,2,42,26,7,27,11,28,67,68,10,43,93,92],"DestroyedTrapIds":[],"Duration":0,"EndAttackMessage":"","EngineTracking":{"EngineTrackingAverageFps":40.24047088,"EngineTrackingTimeBetween20and59Fps":75.84403992,"EngineTrackingTimeGreater59Fps":0.0,"EngineTrackingTimeLess20Fps":0.0},"HitByCreatures":[{"DamageSource":0,"DamageValue":15,"DefenseIngredientId":40,"Details":[{"DamageValue":15,"HeroGlobalX":14,"HeroGlobalZ":-56,"HeroX":15,"HeroY":21}],"HitSuccess":1,"HitTotal":1,"SpecContainerId":1000},{"DamageSource":0,"DamageValue":15,"DefenseIngredientId":46,"Details":[{"DamageValue":15,"HeroGlobalX":20,"HeroGlobalZ":-74,"HeroX":34,"HeroY":16}],"HitSuccess":1,"HitTotal":1,"SpecContainerId":1000},{"DamageSource":0,"DamageValue":0,"DefenseIngredientId":47,"Details":[],"HitSuccess":0,"HitTotal":1,"SpecContainerId":1000}],"HitByTraps":[],"HpLost":33,"KilledCreatureIds":[6,7,19,12,8,37,45,42,43,46,44,47,38,40,16,11,10,9,51,48,50,49,18,20],"LootedGoldCreatureIds":[19,12,8,37,43,42,46,45,44,47,16,11,40,38,9,10,51,48,49,50,20,18],"LootedGoldDecorationIds":[],"LootedGoldTrapIds":[],"LootedHealthOrbCreatureIds":[],"LootedHeroItemCreatureIds":[],"LootedHeroItemDecorationIds":[],"LootedHeroItemTrapIds":[],"LootedLifeForceCreatureIds":[19,12,8,37,43,42,45,44,47,46,16,40,11,38,10,9,51,48,50,49,18,20],"LootedLifeForceDecorationIds":[],"LootedLifeForceTrapIds":[],"ManaUsed":0,"MineDestroyedTimeBonusCount":0,"PayToKeepLoot":false,"PillagedMines":[],"SpellUsed":[],"TotalMinesCount":[{"Count":1,"MineFieldIngredientId":30},{"Count":1,"MineFieldIngredientId":29},{"Count":1,"MineFieldIngredientId":25},{"Count":1,"MineFieldIngredientId":22},{"Count":1,"MineFieldIngredientId":24},{"Count":1,"MineFieldIngredientId":21},
+[I][05:27:31]   HEADER Host: Gameserver
+[I][05:27:31]   HEADER Accept: */*
+[I][05:27:31]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:27:31]   HEADER t: ""
+[I][05:27:31]   HEADER n: 0
+[I][05:27:31]   HEADER sl: 0
+[I][05:27:31]   HEADER rnd: 17876224
+[I][05:27:31]   HEADER i: 14
+[I][05:27:31]   HEADER h: 1692143039
+[I][05:27:31]   HEADER rr: 80030008
+[I][05:27:31]   HEADER Content-Length: 9789
+[I][05:27:31]   HEADER Expect: 100-continue
+[I][05:27:31] ========== ENDATTACK ENTERED ==========
+[I][05:27:31] EndAttack Body: {"endAttackParams":{"AttackFrameCount":2276,"AttackFrameDuration":0.03333333,"CastleRating":0,"Cheated":false,"CollectedTrapIds":[],"CompletionType":0,"ConsumableUsed":[20],"DeactivatedTrapIds":[],"DeathDetails":[],"DestroyedDecorationIds":[81,94,2,42,26,7,27,11,28,67,68,10,43,93,92],"DestroyedTrapIds":[],"Duration":0,"EndAttackMessage":"","EngineTracking":{"EngineTrackingAverageFps":40.24047088,"EngineTrackingTimeBetween20and59Fps":75.84403992,"EngineTrackingTimeGreater59Fps":0.0,"EngineTrackingTimeLess20Fps":0.0},"HitByCreatures":[{"DamageSource":0,"DamageValue":15,"DefenseIngredientId":40,"Details":[{"DamageValue":15,"HeroGlobalX":14,"HeroGlobalZ":-56,"HeroX":15,"HeroY":21}],"HitSuccess":1,"HitTotal":1,"SpecContainerId":1000},{"DamageSource":0,"DamageValue":15,"DefenseIngredientId":46,"Details":[{"DamageValue":15,"HeroGlobalX":20,"HeroGlobalZ":-74,"HeroX":34,"HeroY":16}],"HitSuccess":1,"HitTotal":1,"SpecContainerId":1000},{"DamageSource":0,"DamageValue":0,"DefenseIngredientId":47,"Details":[],"HitSuccess":0,"HitTotal":1,"SpecContainerId":1000}],"HitByTraps":[],"HpLost":33,"KilledCreatureIds":[6,7,19,12,8,37,45,42,43,46,44,47,38,40,16,11,10,9,51,48,50,49,18,20],"LootedGoldCreatureIds":[19,12,8,37,43,42,46,45,44,47,16,11,40,38,9,10,51,48,49,50,20,18],"LootedGoldDecorationIds":[],"LootedGoldTrapIds":[],"LootedHealthOrbCreatureIds":[],"LootedHeroItemCreatureIds":[],"LootedHeroItemDecorationIds":[],"LootedHeroItemTrapIds":[],"LootedLifeForceCreatureIds":[19,12,8,37,43,42,45,44,47,46,16,40,11,38,10,9,51,48,50,49,18,20],"LootedLifeForceDecorationIds":[],"LootedLifeForceTrapIds":[],"ManaUsed":0,"MineDestroyedTimeBonusCount":0,"PayToKeepLoot":false,"PillagedMines":[],"SpellUsed":[],"TotalMinesCount":[{"Count":1,"MineFieldIngredientId":30},{"Count":1,"MineFieldIngredientId":29},{"Count":1,"MineFieldIngredientId":25},{"Count":1,"MineFieldIngredientId":22},{"Count":1,"MineFieldIngredientId":24},{"Count":1,"MineFieldIngredientId":21},{"Count":1,"MineFieldIngredientId":23},{"Count":1,"MineFiel
+[I][05:27:31] EndAttack: removing 7164 trailing byte(s) after JSON.
+[I][05:27:31] EndAttack: extracted valid JSON body length=2625.
+[I][05:27:31] Inventory::Consumeconsumable TemplateId=1 requested=1 consumed=1 remaining=0.
+[I][05:27:31] EndAttack consumables: TemplateId=1 reportedUses=1 deducted=1.
+[I][05:27:31] EndAttack: rebound defender to AccountId=3 name=Bewarewich Castle OasisNameId=16675.
+[I][05:27:31] EndAttack: removing hardcoded Fendrick Objective 303.
+[I][05:27:31] EndAttack: removing hardcoded Fendrick Objective 302.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=19 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=12 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=8 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=37 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=43 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=42 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=46 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=45 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=44 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=47 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=16 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=11 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=40 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=38 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=9 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=10 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=51 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=48 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=49 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=50 matched Gold=1.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=20 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedGoldCreatureIds CreatureId=18 matched Gold=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=19 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=12 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=8 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=37 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=43 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=42 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=45 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=44 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=47 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=46 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=16 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=40 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=11 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=38 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=10 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=9 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=51 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=48 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=50 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=49 matched LifeForce=1.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=18 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=LootedLifeForceCreatureIds CreatureId=20 matched LifeForce=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=6 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=7 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=19 matched Xp=6.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=12 matched Xp=8.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=8 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=37 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=45 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=42 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=43 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=46 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=44 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=47 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=38 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=40 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=16 matched Xp=8.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=11 matched Xp=8.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=10 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=9 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=51 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=48 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=50 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=49 matched Xp=2.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=18 matched Xp=6.
+[I][05:27:31] Loot lookup: Field=KilledCreatureIds CreatureId=20 matched Xp=6.
+[I][05:27:31] EndAttack loot breakdown: CreatureGold=28 TreasureGold=15 TotalGold=43 CreatureLifeForce=28 TreasureLifeForce=15 TotalLifeForce=43.
+[I][05:27:31] Loot fix: keeping drop TemplateId=318 ArchetypeId=10
+[I][05:27:31] Loot fix: keeping drop TemplateId=45 ArchetypeId=4
+[I][05:27:31] Loot fix: keeping drop TemplateId=1003 ArchetypeId=9
+[I][05:27:31] Loot fix: keeping drop TemplateId=1003 ArchetypeId=9
+[I][05:27:31] Loot fix: keeping drop TemplateId=1001 ArchetypeId=9
+[I][05:27:31] Loot fix: keeping drop TemplateId=1001 ArchetypeId=9
+[I][05:27:31] Loot fix: keeping drop TemplateId=1000 ArchetypeId=9
+[I][05:27:31] EndAttack: CurrentattackID=1794745573
+[I][05:27:31] EndAttack: Notifications=10
+[I][05:27:31] EndAttack: Response before persistence={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, Hyper
+[I][05:27:31] PersistAttackInbox: storing reward 58043e625c98320eb4f507ba
+[I][05:27:31] Inventory: stored inbox item 58043e625c98320eb4f507ba.
+[I][05:27:31] PersistAttackInbox: storing reward 58043e625c98320eb4f507bb
+[I][05:27:31] Inventory: stored inbox item 58043e625c98320eb4f507bb.
+[I][05:27:31] PersistAttackInbox: storing reward 58043e625c98320eb4f507bc
+[I][05:27:31] Inventory: stored inbox item 58043e625c98320eb4f507bc.
+[I][05:27:31] PersistAttackInbox: storing reward 58043d945c98320eb4f507bd
+[I][05:27:31] Inventory: stored inbox item 58043d945c98320eb4f507bd.
+[I][05:27:31] PersistAttackInbox: storing reward 58043d945c98320eb4f507be
+[I][05:27:31] Inventory: stored inbox item 58043d945c98320eb4f507be.
+[I][05:27:31] PersistAttackInbox: storing reward 58043d945c98320eb4f507bf
+[I][05:27:32] Inventory: stored inbox item 58043d945c98320eb4f507bf.
+[I][05:27:32] PersistAttackInbox: storing reward 58043d945c98320eb4f507c0
+[I][05:27:32] Inventory: stored inbox item 58043d945c98320eb4f507c0.
+[I][05:27:32] EndAttack XP: CurrentXP=32217 XPReward=78 NewXP=32295
+[I][05:27:32] SetXP: XP=32217 Level=10 -> XP=32295 Level=10
+[I][05:27:32] Savehero: starting.
+[I][05:27:32] Savehero: serializing Mage.
+[I][05:27:32] Savehero: Mage OK.
+[I][05:27:32] Savehero: serializing Knight.
+[I][05:27:32] Savehero: Knight OK.
+[I][05:27:32] Savehero: serializing Archer.
+[I][05:27:32] Savehero: Archer OK.
+[I][05:27:32] Savehero: serializing Runaway.
+[I][05:27:32] Savehero: Runaway OK.
+[I][05:27:32] Savehero: setting default hero.
+[I][05:27:32] Savehero: default hero OK.
+[I][05:27:32] Savehero: dumping JSON.
+[I][05:27:32] Savehero: JSON dump OK.
+[I][05:27:32] Savehero: write OK.
+[I][05:27:32] Savehero: complete.
+[I][05:27:32] EndAttack XP: SetXP returned.
+[I][05:27:32] ========== ENDATTACK SENDING RESPONSE ==========
+[I][05:27:32] EndAttack final XP=32295
+[I][05:27:32] EndAttack final collected loot: Gold=43 LifeForce=43
+[I][05:27:32] EndAttack final response={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":78,"TotalXp":32295,"Level":10,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameSer
+[I][05:27:32] Sendreply: input JSON length=4390
+[I][05:27:32] Sendreply: input Notifications=10 GlobalNotifications=0
+[I][05:27:32] Sendreply: final payload length=4390
+[I][05:27:32] Sendreply: final payload={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":78,"TotalXp":32295,"Level":10,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003,"ArchetypeId":9,"ItemLevel":1,"IsSellable":true},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameSer
+[I][05:27:32] Sendreply: final HTTP response length=4482
+[I][05:27:32] Sendreply: sending response to server socket: 02C00E10
+[I][05:27:32] Sendreply: Server->Send returned.
+[I][05:27:33] DISPATCH Gameserver::onPOST /ServerCommandService.hqs/SendCommands BODYLEN=1449 BODY={"commands":[{"$type":"HyperQuest.GameServer.Contracts.ClientIdleCommand, HyperQuest.GameServer.Contracts","IdleTime":0},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"6":1},"ObjectId":"58043e625c98320eb4f507ba"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"7":1},"ObjectId":"58043e625c98320eb4f507bb"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"8":1},"ObjectId":"58043e625c98320eb4f507bc"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"8":1},"ObjectId":"58043d945c98320eb4f507bd"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"9":1},"ObjectId":"58043d945c98320eb4f507be"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"9":1},"ObjectId":"58043d945c98320eb4f507bf"},{"$type":"HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts","SlotIndexes":{"10":1},"ObjectId":"58043d945c98320eb4f507c0"},{"$type":"HyperQuest.GameServer.Contracts.CompleteAssignmentCommand, HyperQuest.GameServer.Contracts","AssignmentId":150}]}
+[I][05:27:33]   HEADER Host: Gameserver
+[I][05:27:33]   HEADER Accept: */*
+[I][05:27:33]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:27:33]   HEADER t: ""
+[I][05:27:33]   HEADER n: 0
+[I][05:27:33]   HEADER sl: 0
+[I][05:27:33]   HEADER rnd: 273978368
+[I][05:27:33]   HEADER i: 15
+[I][05:27:33]   HEADER h: 3199351024
+[I][05:27:33]   HEADER Content-Length: 1449
+[I][05:27:33]   HEADER Expect: 100-continue
+[I][05:27:33] ServerCommandService: received command "ClientIdleCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.ClientIdleCommand, HyperQuest.GameServer.Contracts",
+    "IdleTime": 0
+}
+[I][05:27:33] Telemetry: Client was idle for 0 seconds.
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "6": 1
+    },
+    "ObjectId": "58043e625c98320eb4f507ba"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043e625c98320eb4f507ba DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043e625c98320eb4f507ba into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043e625c98320eb4f507ba Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "7": 1
+    },
+    "ObjectId": "58043e625c98320eb4f507bb"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043e625c98320eb4f507bb DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043e625c98320eb4f507bb into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043e625c98320eb4f507bb Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "8": 1
+    },
+    "ObjectId": "58043e625c98320eb4f507bc"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043e625c98320eb4f507bc DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043e625c98320eb4f507bc into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043e625c98320eb4f507bc Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "8": 1
+    },
+    "ObjectId": "58043d945c98320eb4f507bd"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043d945c98320eb4f507bd DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043d945c98320eb4f507bd into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043d945c98320eb4f507bd Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "9": 1
+    },
+    "ObjectId": "58043d945c98320eb4f507be"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043d945c98320eb4f507be DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043d945c98320eb4f507be into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043d945c98320eb4f507be Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "9": 1
+    },
+    "ObjectId": "58043d945c98320eb4f507bf"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043d945c98320eb4f507bf DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043d945c98320eb4f507bf into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043d945c98320eb4f507bf Collected=true
+[I][05:27:33] ServerCommandService: received command "InboxCollectToHeroInventoryCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.InboxCollectToHeroInventoryCommand, HyperQuest.GameServer.Contracts",
+    "SlotIndexes": {
+        "10": 1
+    },
+    "ObjectId": "58043d945c98320eb4f507c0"
+}
+[I][05:27:33] INBOX COLLECT REQUEST: ObjectId=58043d945c98320eb4f507c0 DestinationSlot=-1
+[I][05:27:33] Inventory: collected 58043d945c98320eb4f507c0 into slot -1.
+[I][05:27:33] INBOX COLLECT RESULT: ObjectId=58043d945c98320eb4f507c0 Collected=true
+[I][05:27:33] ServerCommandService: received command "CompleteAssignmentCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.CompleteAssignmentCommand, HyperQuest.GameServer.Contracts",
+    "AssignmentId": 150
+}
+[I][05:27:33] Client completed quest 150
+[I][05:27:34] SendCommand global state snapshot: Gold=4087 LifeForce=17144 XP=32295 Level=10.
+[I][05:27:34] Sendreply: input JSON length=411
+[I][05:27:34] Sendreply: input Notifications=2 GlobalNotifications=0
+[I][05:27:34] Sendreply: final payload length=411
+[I][05:27:34] Sendreply: final payload={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":4087},{"CurrencyType":4,"Amount":17144}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":0,"TotalXp":32295,"Level":10,"NotificationType":43}]}
+[I][05:27:34] Sendreply: final HTTP response length=502
+[I][05:27:34] Sendreply: sending response to server socket: 02C00E10
+[I][05:27:34] Sendreply: Server->Send returned.
+[I][05:27:34] DISPATCH Gameserver::onPOST /ServerCommandService.hqs/SendCommands BODYLEN=474 BODY={"commands":[{"$type":"HyperQuest.GameServer.Contracts.StartAssignmentCommand, HyperQuest.GameServer.Contracts","AssignmentId":125},{"$type":"HyperQuest.GameServer.Contracts.TrackingCommand, HyperQuest.GameServer.Contracts","TrackingTag":{"$type":"HyperQuest.GameServer.Contracts.GameStateTracking, HyperQuest.GameServer.Contracts","GameStateId":3,"GameStateIdleTime":0,"GameStateTotalTime":0,"GameStateType":2,"NextGameStateType":5,"CreationDate":"","TrackingTagId":107}}]}
+[I][05:27:34]   HEADER Host: Gameserver
+[I][05:27:34]   HEADER Accept: */*
+[I][05:27:34]   HEADER Content-Type: application/json; charset=utf-8
+[I][05:27:34]   HEADER t: ""
+[I][05:27:34]   HEADER n: 0
+[I][05:27:34]   HEADER sl: 0
+[I][05:27:34]   HEADER rnd: 353681664
+[I][05:27:34]   HEADER i: 16
+[I][05:27:34]   HEADER h: 3394838163
+[I][05:27:34]   HEADER Content-Length: 474
+[I][05:27:34] ServerCommandService: received command "StartAssignmentCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.StartAssignmentCommand, HyperQuest.GameServer.Contracts",
+    "AssignmentId": 125
+}
+[I][05:27:34] Client started quest 125
+[I][05:27:34] ServerCommandService: received command "TrackingCommand": {
+    "$type": "HyperQuest.GameServer.Contracts.TrackingCommand, HyperQuest.GameServer.Contracts",
+    "TrackingTag": {
+        "$type": "HyperQuest.GameServer.Contracts.GameStateTracking, HyperQuest.GameServer.Contracts",
+        "GameStateId": 3,
+        "GameStateIdleTime": 0,
+        "GameStateTotalTime": 0,
+        "GameStateType": 2,
+        "NextGameStateType": 5,
+        "CreationDate": "",
+        "TrackingTagId": 107
+    }
+}
+[I][05:27:34] Telemetry: Gamestate 3 updated
+[I][05:27:34] SendCommand global state snapshot: Gold=4087 LifeForce=17144 XP=32295 Level=10.
+[I][05:27:34] Sendreply: input JSON length=411
+[I][05:27:34] Sendreply: input Notifications=2 GlobalNotifications=0
+[I][05:27:34] Sendreply: final payload length=411
+[I][05:27:34] Sendreply: final payload={"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2,"Amount":4087},{"CurrencyType":4,"Amount":17144}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":3,"XpAdded":0,"TotalXp":32295,"Level":10,"NotificationType":43}]}
+[I][05:27:34] Sendreply: final HTTP response length=502
+[I][05:27:34] Sendreply: sending response to server socket: 02C00E10
+[I][05:27:34] Sendreply: Server->Send returned.

@@ -9,6 +9,7 @@
 #pragma once
 #include "../../Stdinclude.hpp"
 #include "../../Backend/PvECastleDatabase.hpp"
+#include <fstream>
 
 uint64_t CurrentattackID;
 uint64_t CurrentattackCastleID = 0;
@@ -707,6 +708,86 @@ MQEL_json GetDefenderconsumables()
         R"([{"TemplateId":402,"ConsumableType":10}])");
 }
 
+// DIAGNOSTIC (castle 101 ErrorPanel test): remove every trap with the given
+// SpecContainerId from the castle's rooms and from its TrapTiers list.
+// Returns how many entries were removed.
+uint32_t StripTrapSpec(
+    MQEL_json &Castle,
+    uint32_t SpecId)
+{
+    uint32_t Removed = 0;
+
+    if (!Castle.is_object())
+        return 0;
+
+    auto RoomsIt = Castle.find("Rooms");
+
+    if (RoomsIt != Castle.end() && RoomsIt->is_array())
+    {
+        for (auto &Room : *RoomsIt)
+        {
+            if (!Room.is_object())
+                continue;
+
+            auto TrapsIt = Room.find("Traps");
+
+            if (TrapsIt == Room.end() || !TrapsIt->is_array())
+                continue;
+
+            MQEL_json Kept = MQEL_json::array();
+
+            for (const auto &Trap : *TrapsIt)
+            {
+                if (Trap.is_object())
+                {
+                    auto SpecIt = Trap.find("SpecContainerId");
+
+                    if (SpecIt != Trap.end() &&
+                        SpecIt->is_number_integer() &&
+                        SpecIt->get<uint32_t>() == SpecId)
+                    {
+                        ++Removed;
+                        continue;
+                    }
+                }
+
+                Kept.push_back(Trap);
+            }
+
+            *TrapsIt = Kept;
+        }
+    }
+
+    auto TiersIt = Castle.find("TrapTiers");
+
+    if (TiersIt != Castle.end() && TiersIt->is_array())
+    {
+        MQEL_json KeptTiers = MQEL_json::array();
+
+        for (const auto &Tier : *TiersIt)
+        {
+            if (Tier.is_object())
+            {
+                auto SpecIt = Tier.find("SpecContainerId");
+
+                if (SpecIt != Tier.end() &&
+                    SpecIt->is_number_integer() &&
+                    SpecIt->get<uint32_t>() == SpecId)
+                {
+                    ++Removed;
+                    continue;
+                }
+            }
+
+            KeptTiers.push_back(Tier);
+        }
+
+        *TiersIt = KeptTiers;
+    }
+
+    return Removed;
+}
+
 // Endpoints.
 void StartAttack(
     Gameserver *Server,
@@ -1105,6 +1186,22 @@ void StartAttack(
         }
     }
 
+    // DIAGNOSTIC: castle 101 (Fendrick's Farm) opens the client ErrorPanel at
+    // attack start. Test whether the trap spec 1003 entries are the cause.
+    if (CastleAccountId == 101 &&
+        Response["Result"]["Castle"].is_object())
+    {
+        const uint32_t RemovedTraps =
+            StripTrapSpec(
+                Response["Result"]["Castle"],
+                1003);
+
+        Infoprint(
+            va(
+                "DIAG: castle 101 test - removed %u trap spec 1003 entries (rooms + TrapTiers).",
+                RemovedTraps));
+    }
+
     Infoprint(
         va(
             "Castle payload size=%u",
@@ -1219,6 +1316,29 @@ void StartAttack(
 
     Response["Result"]["IsResurrectionAllowed"] =
         true;
+
+    // Debug: write the full StartAttack response to disk, one file per
+    // castle, so the real JSON can be compared (Fendrick 101 vs. a castle
+    // that loads) instead of relying on the truncated server log.
+    {
+        const std::string DumpPath =
+            va("Plugins/Logs/StartAttack_%llu.json",
+               (unsigned long long)CastleAccountId);
+
+        std::ofstream DumpFile(
+            DumpPath,
+            std::ios::binary | std::ios::trunc);
+
+        if (DumpFile)
+        {
+            DumpFile << Response.dump(2);
+            Infoprint(va("StartAttack: wrote full response to %s", DumpPath.c_str()));
+        }
+        else
+        {
+            Infoprint(va("StartAttack: could not open %s for writing.", DumpPath.c_str()));
+        }
+    }
 
     Sendreply(
         Server,
@@ -1569,7 +1689,7 @@ void EndAttack(
     else
     {
         Response = MQEL_json::parse(
-            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":165}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveCompletedNotification, HyperQuest.GameServer.Contracts","ObjectiveId":302,"NotificationType":14},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507be"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bf"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f507c0"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveUnlockedNotification, HyperQuest.GameServer.Contracts","AccountObjective":{"ObjectiveId":303,"LastStatusDate":"2016-10-17T02:58:42Z","Status":1},"NotificationType":17}],"Result":{"AttackId":"58043dab5c98320eb4f50743","DefenderCastleId":101,"DefenderAccountDisplayName":"Fendrick's Farm","DefenderOasisNameId":16659,"Duration":172600,"InitialGold":2000,"HeroLevel":4,"TotalXp":333,"TotalGold":179,"TotalLifeForce":165,"KillsXp":333,"KillsGold":133,"KillsLifeForce":119,"TreasureRoomGold":46,"TreasureRoomLifeForce":46,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":75},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":243,"AttackTotalIGCWon":1012,"TotalCastlesLooted":11,"CastlesDefeated":{"Medium":5,"Easy":5,"Hard":1},"KilledCreatures":{"1081":103,"1029":7,"1003":5,"1000":24,"1006":3,"1079":8,"1155":1,"1001":26,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":5,"TotalPotionsConsumed":5,"TotalItemsLooted":33},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
+            R"({"Notifications":[{"$type":"HyperQuest.GameServer.Contracts.WalletUpdatedNotification, HyperQuest.GameServer.Contracts","Amounts":[{"CurrencyType":2},{"CurrencyType":4,"Amount":165}],"NotificationType":24},{"$type":"HyperQuest.GameServer.Contracts.HeroXpChangedNotification, HyperQuest.GameServer.Contracts","HeroSpecContainerId":4,"XpAdded":333,"TotalXp":2201,"Level":4,"NotificationType":43},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":10,"PrimaryStatsModifiers":[0.979,0.193,0.183],"IsSellable":true,"TemplateId":318},"ItemType":3,"ObjectId":"58043e625c98320eb4f507ba"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxHeroEquipmentItem, HyperQuest.GameServer.Contracts","HeroItem":{"ItemLevel":3,"ArchetypeId":4,"PrimaryStatsModifiers":[0.381,0.771,0.188],"IsSellable":true,"TemplateId":45},"ItemType":3,"ObjectId":"58043e625c98320eb4f507bb"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveCompletedNotification, HyperQuest.GameServer.Contracts","ObjectiveId":302,"NotificationType":14},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043e625c98320eb4f507bc"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1003},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bd"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507be"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1001},"ItemType":4,"ObjectId":"58043d945c98320eb4f507bf"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.InboxItemsAddedNotification, HyperQuest.GameServer.Contracts","InboxItems":[{"$type":"HyperQuest.GameServer.Contracts.InboxConsumableItem, HyperQuest.GameServer.Contracts","HeroItem":{"StackCount":1,"TemplateId":1000},"ItemType":4,"ObjectId":"58043d945c98320eb4f507c0"}],"NotificationType":111},{"$type":"HyperQuest.GameServer.Contracts.ObjectiveUnlockedNotification, HyperQuest.GameServer.Contracts","AccountObjective":{"ObjectiveId":303,"LastStatusDate":"2016-10-17T02:58:42Z","Status":1},"NotificationType":17}],"Result":{"AttackId":"58043dab5c98320c1881325a","DefenderCastleId":101,"DefenderAccountDisplayName":"Fendrick's Farm","DefenderOasisNameId":16659,"Duration":172600,"InitialGold":2000,"HeroLevel":4,"TotalXp":333,"TotalGold":179,"TotalLifeForce":165,"KillsXp":333,"KillsGold":133,"KillsLifeForce":119,"TreasureRoomGold":46,"TreasureRoomLifeForce":46,"CastleRatingFreePrize":{"CurrencyType":2,"Amount":75},"IsCastleAttackable":true,"UpdatedAccountStats":{"TotalCreaturesKilled":243,"AttackTotalIGCWon":1012,"TotalCastlesLooted":11,"CastlesDefeated":{"Medium":5,"Easy":5,"Hard":1},"KilledCreatures":{"1081":103,"1029":7,"1003":5,"1000":24,"1006":3,"1079":8,"1155":1,"1001":26,"1026":9,"1024":7,"1016":5,"1009":6,"1015":13,"1002":6,"1028":3,"1007":4,"1090":8,"1087":8},"CurrencyAccumulation":{"IGC":1300,"LifeForce":1200},"DefeatCastleStrike":5,"TotalPotionsConsumed":5,"TotalItemsLooted":33},"TrophyScoreVariation":{},"VictoryConditionRewardRatios":[1,0.75,0.5],"VictoryConditionLevel":1,"MaxVictoryConditionLevel":1,"EnterTreasureRoom":true,"VictoryConditionType":1}})");
     }
 
     // Exit/Escape requests must not reuse the generic successful-attack
@@ -1703,6 +1823,35 @@ void EndAttack(
         {
             Infoprint(
                 "EndAttack: Dread Castle 21 was not found in the PVE database.");
+        }
+
+        /*
+            Knight of the Dread (assignment 120) is complete once Castle 21
+            is actually beaten. Without this the quest stays "started" forever
+            and every quest attack on Castle 2 keeps being routed to Castle 21.
+
+            CompletionType: 0 = victory, 2 = Exit, 3 = Escape.
+
+            CurrentattackDreadKnightQuest is left untouched here because the
+            reward logic further down still reads it; StartAttack recomputes it
+            from IsStarted(120) on the next attack.
+        */
+        {
+            const auto DreadCompletionIt =
+                Parsed["endAttackParams"].find("CompletionType");
+
+            const bool DreadVictory =
+                DreadCompletionIt != Parsed["endAttackParams"].end() &&
+                DreadCompletionIt->is_number_integer() &&
+                DreadCompletionIt->get<uint32_t>() == 0;
+
+            if (DreadVictory)
+            {
+                Infoprint(
+                    "EndAttack: Dread victory; completing assignment 120.");
+
+                Backend::Quest::Complete(120);
+            }
         }
     }
 
@@ -2076,6 +2225,23 @@ void Resurrect(
         Response.toString());
 }
 
+// Minimal Clan stub so the client gets a reply instead of waiting forever.
+void GuildStub(
+    Gameserver *Server,
+    std::string Request,
+    std::string Body)
+{
+    (void)Request;
+    (void)Body;
+
+    Infoprint(
+        "GuildService stub: replying with empty result.");
+
+    Sendreply(
+        Server,
+        "{\"Result\":{}}");
+}
+
 // Add the services to the gameserver on startup.
 namespace
 {
@@ -2098,6 +2264,14 @@ namespace
             Mapservice(
                 "/AttackService.hqs/Resurrect",
                 Resurrect);
+
+            Mapservice(
+                "/GuildService.hqs/GetLeaderboardPage",
+                GuildStub);
+
+            Mapservice(
+                "/GuildService.hqs/CreateGuild",
+                GuildStub);
         }
     };
 
