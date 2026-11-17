@@ -66,6 +66,17 @@ if (-not $NoGameData) {
     }
 }
 
+# Optional starter hero save (a ready-made level 1 Archer). It is only installed if the player
+# creates use-starter-save.txt in %LOCALAPPDATA%\LostWorldsMQ; by default new players go through
+# the real intro and class selection. Kept as Starter\starter.save so git does not ignore it.
+$starter = Join-Path $root 'Starter\starter.save'
+if (Test-Path $starter) {
+    Write-Host "Staging starter save..."
+    Copy-Item $starter "$stage\app\starter.save" -Force
+} else {
+    Write-Warning "Starter\starter.save not found - the use-starter-save.txt fallback will not work."
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $payload = Join-Path $dist 'payload.zip'
 [System.IO.Compression.ZipFile]::CreateFromDirectory($stage, $payload, [System.IO.Compression.CompressionLevel]::Optimal, $false)

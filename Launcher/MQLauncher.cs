@@ -139,6 +139,47 @@ namespace LostWorldsLauncher
             }
         }
 
+        // True if the save already contains a hero. A brand-new profile (what the server creates
+        // when no save exists) has no Heroes.json and would send the game into the new-account
+        // intro (cutscene + class selection).
+        static bool SaveHasHero(string path)
+        {
+            try
+            {
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var z = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read))
+                {
+                    foreach (var e in z.Entries)
+                        if (e.FullName.Equals("Heroes.json", StringComparison.OrdinalIgnoreCase)) return true;
+                    return false;
+                }
+            }
+            catch { return true; } // unreadable: leave it alone rather than overwrite someone's save
+        }
+
+        // Optional: give the player a ready-made level 1 Archer so they skip the new-account
+        // intro (see use-starter-save.txt in Run). Never replaces a save that already has a hero.
+        // Call before the server starts.
+        public static void SeedStarterSave(Action<string> log)
+        {
+            try
+            {
+                string starter = Path.Combine(AppDir, "starter.save");
+                if (!File.Exists(starter)) return;
+                string plugins = Path.Combine(DataDir, "Plugins");
+                string save = Path.Combine(plugins, "MQELOffline.Localnet");
+                if (File.Exists(save) && SaveHasHero(save)) return;
+                Directory.CreateDirectory(plugins);
+                if (File.Exists(save))
+                {
+                    try { File.Copy(save, save + ".blank", true); } catch { }
+                }
+                File.Copy(starter, save, true);
+                log("Installed the starter hero save.");
+            }
+            catch (Exception ex) { log("Could not install the starter save: " + ex.Message); }
+        }
+
         // Unpacks the embedded files if they are missing or out of date.
         // Returns null on success, or a message that explains what went wrong.
         public static string Ensure(Action<string> say)
@@ -481,6 +522,16 @@ namespace LostWorldsLauncher
 
         void OnClosing(object s, FormClosingEventArgs e)
         {
+            if (weStartedServer && Process.GetProcessesByName("MightyQuest").Length > 0)
+            {
+                if (MessageBox.Show(this,
+                    "The game is still running. Closing this window stops the server and the game will lose its connection.\n\nClose anyway?",
+                    "Lost Worlds", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
             StopServer();
         }
 
@@ -504,6 +555,13 @@ namespace LostWorldsLauncher
                 if (solo && !File.Exists(srvExe))
                 { Fail("Missing game file mqelserver.exe. Delete the folder " + Payload.AppDir + " and press PLAY again."); return; }
                 string target = solo ? "127.0.0.1" : ip;
+
+                // 0b. By default a new player goes through the real intro (cutscene, class
+                // selection). To skip it with a ready-made level 1 Archer instead, create an empty
+                // file named use-starter-save.txt in the data folder (fallback if the intro ever
+                // stalls on a machine). Never replaces a save that already has a hero.
+                if (solo && File.Exists(Path.Combine(DataDir, "use-starter-save.txt")) &&
+                    Process.GetProcessesByName("mqelserver").Length == 0) Payload.SeedStarterSave(Log);
 
                 // 1. hosts entry (one UAC prompt, only when it needs to change)
                 if (!Hosts.Matches(target))
@@ -570,7 +628,11 @@ namespace LostWorldsLauncher
                 { Fail("Couldn't patch the game's certificate check. See launcher.log in the saves folder."); return; }
 
                 Say("Playing! Leave this window open; closing it stops the server.");
-                while (Process.GetProcessesByName("MightyQuest").Length > 0) Thread.Sleep(2000);
+                while (Process.GetProcessesByName("MightyQuest").Length > 0)
+                {
+                    if (solo) KeepServerAlive();
+                    Thread.Sleep(2000);
+                }
                 Say("Game closed.");
             }
             catch (Exception ex)
@@ -599,15 +661,42 @@ namespace LostWorldsLauncher
             psi.CreateNoWindow = true;
             serverProc = Process.Start(psi);
             weStartedServer = true;
-            Thread.Sleep(3000);
-            if (serverProc.HasExited)
+
+            // Wait until the server is really accepting connections on port 443 (up to 30 s),
+            // instead of guessing with a fixed sleep. The game must not start before this.
+            for (int i = 0; i < 60; i++)
             {
-                Fail("The server stopped right away (exit code " + serverProc.ExitCode + "). Port 443 is probably in use by another program " +
-                     "(e.g. IIS, Skype, another server). Check mqelserver.log in the saves folder.");
-                return false;
+                if (serverProc.HasExited)
+                {
+                    Fail("The server stopped right away (exit code " + serverProc.ExitCode + "). Port 443 is probably in use by another program " +
+                         "(e.g. IIS, Skype, another server). Check the logs in the saves folder.");
+                    return false;
+                }
+                if (CanConnect("127.0.0.1", 443))
+                {
+                    Log("Server running and listening on port 443.");
+                    return true;
+                }
+                Thread.Sleep(500);
             }
-            Log("Server running.");
-            return true;
+            Fail("The server started but never began listening on port 443. Check the logs in the saves folder.");
+            StopServer();
+            return false;
+        }
+
+        // Restarts our own server if it died while the game is running.
+        void KeepServerAlive()
+        {
+            if (!weStartedServer || serverProc == null || !serverProc.HasExited) return;
+            Log("Server exited unexpectedly (code " + serverProc.ExitCode + "), restarting it.");
+            Say("The server stopped - restarting it...");
+            string srv = Path.Combine(BinDir, "mqelserver.exe");
+            var psi = new ProcessStartInfo(srv);
+            psi.WorkingDirectory = DataDir;
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
+            try { serverProc = Process.Start(psi); }
+            catch (Exception ex) { Log("Restart failed: " + ex.Message); }
         }
 
         void StopServer()

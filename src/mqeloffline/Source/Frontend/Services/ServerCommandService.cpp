@@ -121,14 +121,41 @@ void Handlecastlebuy(Request_t Request)
 {
     Printfunction();
 
-    // Set the max capacity for gold and life.
-    Backend::Wallet::Updateamount(
-        eCurrencytype::IGC,
-        2000);
+    /*
+        BuyCommand is the new-account "choose your starting castle" purchase.
+        Only act on it while the account has no hero yet, so a returning
+        player's save never gets another starter grant or a second
+        CastleBoughtNotification.
+    */
+    if (Backend::Hero::Getheroclass() != 0)
+    {
+        Infoprint(
+            "BuyCommand ignored: this account already has a hero.");
 
-    Backend::Wallet::Updateamount(
-        eCurrencytype::Lifeforce,
-        2000);
+        return;
+    }
+
+    // Starting funds. Top up to 2000 instead of adding, so repeating this
+    // step (for example closing the game mid-intro) cannot farm currency.
+    const int32_t StartGold =
+        Backend::Wallet::Getamount(eCurrencytype::IGC);
+
+    if (StartGold < 2000)
+    {
+        Backend::Wallet::Updateamount(
+            eCurrencytype::IGC,
+            2000 - StartGold);
+    }
+
+    const int32_t StartLifeForce =
+        Backend::Wallet::Getamount(eCurrencytype::Lifeforce);
+
+    if (StartLifeForce < 2000)
+    {
+        Backend::Wallet::Updateamount(
+            eCurrencytype::Lifeforce,
+            2000 - StartLifeForce);
+    }
 
     /* TODO(Convery): Implement these notifications rather than hardcoding. */
     Backend::Notification::Enqueuelocal(
@@ -908,6 +935,42 @@ void SendCommand(
 
     Response["Notifications"].push_back(
         XPNotification);
+
+    /*
+        Backend notifications are deliberately not attached to every reply
+        (EndAttack builds its own). The exception is new-account setup: after
+        the starting-castle purchase the client waits for
+        CastleBoughtNotification (86) before it continues the intro (Goldus
+        cutscene, class selection). Nothing used to send it, so the game sat
+        idle forever. Deliver those setup notifications here (86, and the
+        SKU-modifier update 90 that goes with it) and discard everything else
+        that was queued, so the queue cannot grow without bound or replay old
+        quest and tutorial events.
+    */
+    for (auto &Queued : Backend::Notification::Dequeuelocals())
+    {
+        if (!Queued.is_object() ||
+            !Queued["NotificationType"].is_number())
+        {
+            continue;
+        }
+
+        const uint32_t QueuedType =
+            Queued["NotificationType"].get<uint32_t>();
+
+        if (QueuedType == 86 || QueuedType == 90)
+        {
+            Infoprint(
+                va(
+                    "SendCommand: delivering setup notification type %u.",
+                    QueuedType));
+
+            Response["Notifications"].push_back(
+                Queued);
+        }
+    }
+
+    Backend::Notification::Dequeueglobals();
 
     Infoprint(
         va(

@@ -41,6 +41,10 @@ TROUBLESHOOTING
   - "Port 443 in use": another program is using it (IIS, Skype, another server).
   - Game closes instantly: Steam must be running, signed in, and the game installed.
   - Logs: launcher.log and mqelserver.log in the saves folder.
+  - Stuck during the new-account intro (cutscene / class selection)? Close the game and the
+    launcher, create an empty file named  use-starter-save.txt  in the saves folder, delete
+    Plugins\MQELOffline.Localnet there, and press PLAY again. You then start as a level 1
+    Archer and skip the intro.
 
 The Mighty Quest for Epic Loot is (c) Ubisoft. This is an unofficial,
 non-commercial preservation project, unaffiliated with Ubisoft. See CREDITS.md.
