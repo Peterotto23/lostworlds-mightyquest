@@ -21,3 +21,5 @@ Plugins/MQELOffline.Localnet
 Plugins/MQELOffline.Localnet.*
 SaveBackup/
 Plugins/Logs/
+
+dist/
