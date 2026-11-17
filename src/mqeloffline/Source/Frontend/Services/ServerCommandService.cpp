@@ -842,8 +842,10 @@ void SendCommand(
     const int32_t CurrentLifeForce =
         Backend::Wallet::Getamount(eCurrencytype::Lifeforce);
 
-    const auto HeroState =
+    auto HeroState =
         Backend::Hero::Serialize();
+    if (!HeroState.is_object())
+        HeroState = MQEL_json::object();
 
     const uint32_t CurrentXP =
         HeroState["XP"].is_number()
